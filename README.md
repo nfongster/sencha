@@ -1,2 +1,2 @@
 # sencha
-An application for estimating how much money you might have in retirement.
+An AI-powered language-learning app.
