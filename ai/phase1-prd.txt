@@ -1,0 +1,23 @@
+Phase 1: Console App <---> Go Server <---> Hard-Coded Data
+
+User starts console app which starts server.  Available commands at startup:
+- Start
+- Quit
+
+Selecting "Start" will initiate a study session.
+- Console displays Korean or English text.
+- User presses spacebar to reveal answer.
+- User can select 1 of 3 options: Pass, Hard, or Fail.
+  - Pass: User got the answer correct in a reasonable amount of time.
+  - Hard: User got the answer correct, but it took a while to remember.
+  - Fail: User either got an incorrect answer or gave up.
+
+Constraints:
+- The system will not track or time the user's responses.
+- The system will have a hard-coded list of 10 example sentences instead of a database.
+- The system will randomize which sentences get revealed.
+- The system will show all 10 sentences every study session.
+
+Interface:
+- The application will be entirely console-based.
+- There will be no special rendering, only raw console I/O.
