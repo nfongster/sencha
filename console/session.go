@@ -38,25 +38,27 @@ func runSession(scanner *bufio.Scanner, client *Client) {
 
 		fmt.Println()
 		fmt.Println("→", reveal.Back)
-		fmt.Println("Grade: [p]ass / [h]ard / [f]ail")
-		fmt.Print("> ")
-
-		if !scanner.Scan() {
-			return
-		}
-		grade := strings.TrimSpace(scanner.Text())
 
 		var gradeStr string
-		switch grade {
-		case "p", "pass":
-			gradeStr = "pass"
-		case "h", "hard":
-			gradeStr = "hard"
-		case "f", "fail":
-			gradeStr = "fail"
-		default:
-			fmt.Println("Invalid grade, skipping this card.")
-			continue
+		for {
+			fmt.Println("Grade: [p]ass / [h]ard / [f]ail")
+			fmt.Print("> ")
+			if !scanner.Scan() {
+				return
+			}
+			grade := strings.TrimSpace(scanner.Text())
+			switch grade {
+			case "p", "pass":
+				gradeStr = "pass"
+			case "h", "hard":
+				gradeStr = "hard"
+			case "f", "fail":
+				gradeStr = "fail"
+			default:
+				fmt.Println("Invalid input. Please enter pass, hard, fail, or p/h/f.")
+				continue
+			}
+			break
 		}
 
 		result, err := client.SubmitGrade(sess.SessionID, gradeStr)
