@@ -1,20 +1,45 @@
 # Phase 2 — LLM-Powered Sentence Generation
 
-## Status: 🚧 In Progress
+## Status: ✅ Complete
+
+All 38 tests pass. All 15 manual smoke tests pass.
 
 ## Progress
 
 - [x] Sub-phase 1: Config — config.go + config.json + main.go changes
 - [x] Sub-phase 2: Session — SentencePair type + WithPairs option
 - [x] Sub-phase 3: Sengen — vocab.go + grammar.md + prompt.tmpl + sengen.go (+ 8 tests)
-- [ ] Sub-phase 4: Handler — integrate sengen into CreateSessionHandler
-- [ ] Sub-phase 5: Wrap-up — run full test suite, final review
+- [x] Sub-phase 4: Handler — integrate sengen into CreateSessionHandler (+ mock generator)
+- [x] Sub-phase 5: Wrap-up — run full test suite, final review
 
 ## Overview
 
 Replace the hard-coded sentence list with a sentence generator ("sen-gen") that uses an LLM to dynamically produce practice sentences from a vocabulary list, grammar rules, and a prompt template.
 
 ---
+
+## Project Structure (Additions)
+
+```
+backend/
+├── config.json                        # LLM configuration
+├── internal/
+│   ├── config/
+│   │   └── config.go                  # Config struct + JSON loader
+│   ├── handler/
+│   │   ├── sessions.go                # [modified] calls sengen.Generate
+│   │   └── handler_test.go            # [modified] uses mock generator
+│   ├── session/
+│   │   └── session.go                 # [modified] SentencePair + WithPairs
+│   └── sengen/                        # NEW: sentence generator
+│       ├── sengen.go                  # Generator orchestrator + LLM client
+│       ├── sengen_test.go             # 8 tests: prompt building + parsing
+│       ├── vocab.go                   # 48 hard-coded vocabulary entries
+│       ├── grammar.md                 # Grammar rules (embedded)
+│       └── prompt.tmpl                # LLM prompt template (embedded)
+├── go.mod
+└── go.sum
+```
 
 ## New Files
 
@@ -23,6 +48,7 @@ Replace the hard-coded sentence list with a sentence generator ("sen-gen") that 
 | `backend/config.json` | LLM config: `base_url`, `model`, `api_key` |
 | `internal/config/config.go` | Config struct + JSON loader |
 | `internal/sengen/sengen.go` | Orchestrator: `Generate(count int) ([]session.SentencePair, error)` |
+| `internal/sengen/sengen_test.go` | 8 tests for prompt building + response parsing |
 | `internal/sengen/vocab.go` | Hard-coded Korean/English vocab list (Go `var`) |
 | `internal/sengen/grammar.md` | Grammar rules, embedded via `//go:embed` |
 | `internal/sengen/prompt.tmpl` | Go `text/template` prompt, embedded via `//go:embed` |
@@ -34,6 +60,8 @@ Replace the hard-coded sentence list with a sentence generator ("sen-gen") that 
 | `cmd/api/main.go` | Load `config.json` → `config.Config` → inject into `sengen` |
 | `internal/session/session.go` | Add `SentencePair` type + `WithPairs()` option (maps to `Card` + shuffles internally) |
 | `internal/handler/sessions.go` | `CreateSessionHandler` calls `sengen.Generate(10)`; error → 503; passes `WithPairs` |
+| `internal/handler/routes.go` | `Initialize` now calls `sengen.Init` |
+| `internal/handler/handler_test.go` | Uses `sengen.SetGenerateFunc` mock for testing |
 
 ## Dependency Graph
 
