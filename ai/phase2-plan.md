@@ -2,6 +2,14 @@
 
 ## Status: 🚧 In Progress
 
+## Progress
+
+- [x] Sub-phase 1: Config — config.go + config.json + main.go changes
+- [ ] Sub-phase 2: Session — SentencePair type + WithPairs option
+- [ ] Sub-phase 3: Sengen — vocab.go + grammar.md + prompt.tmpl + sengen.go
+- [ ] Sub-phase 4: Handler — integrate sengen into CreateSessionHandler
+- [ ] Sub-phase 5: Wrap-up — update phase2-plan.md, run tests
+
 ## Overview
 
 Replace the hard-coded sentence list with a sentence generator ("sen-gen") that uses an LLM to dynamically produce practice sentences from a vocabulary list, grammar rules, and a prompt template.
