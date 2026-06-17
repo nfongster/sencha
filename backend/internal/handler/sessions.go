@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"sencha/backend/internal/sengen"
 	"sencha/backend/internal/session"
 	"sencha/backend/internal/store"
 
@@ -58,11 +59,20 @@ func CreateSessionHandler(c *gin.Context) {
 		return
 	}
 
+	pairs, err := sengen.Generate(10)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, errorResponse{
+			Error: "sentence generation failed",
+			Code:  "GENERATION_FAILED",
+		})
+		return
+	}
+
 	var sess *session.Session
 	if req.Direction != "" {
-		sess = session.NewSession(session.WithDirection(dir))
+		sess = session.NewSession(session.WithDirection(dir), session.WithPairs(pairs))
 	} else {
-		sess = session.NewSession()
+		sess = session.NewSession(session.WithPairs(pairs))
 	}
 
 	store.Set(sess.ID, sess)

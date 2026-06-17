@@ -49,11 +49,22 @@ type chatResponse struct {
 var globalConfig *config.LLMConfig
 var httpClient = &http.Client{Timeout: 60 * time.Second}
 
+// testGenerateFunc, when set, replaces the real generation logic for tests.
+// This allows handler tests to avoid depending on an actual LLM.
+var testGenerateFunc func(int) ([]session.SentencePair, error)
+
+func SetGenerateFunc(fn func(int) ([]session.SentencePair, error)) {
+	testGenerateFunc = fn
+}
+
 func Init(cfg *config.LLMConfig) {
 	globalConfig = cfg
 }
 
 func Generate(count int) ([]session.SentencePair, error) {
+	if testGenerateFunc != nil {
+		return testGenerateFunc(count)
+	}
 	if globalConfig == nil {
 		return nil, fmt.Errorf("sengen not initialized")
 	}

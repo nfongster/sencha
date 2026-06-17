@@ -2,6 +2,7 @@ package handler
 
 import (
 	"sencha/backend/internal/config"
+	"sencha/backend/internal/sengen"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,6 +11,7 @@ var appConfig *config.Config
 
 func Initialize(cfg *config.Config) {
 	appConfig = cfg
+	sengen.Init(&cfg.LLM)
 }
 
 func RegisterRoutes(r *gin.Engine) {
