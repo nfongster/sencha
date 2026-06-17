@@ -29,6 +29,11 @@ var validGrades = map[Grade]bool{
 	GradeFail: true,
 }
 
+type SentencePair struct {
+	Korean  string
+	English string
+}
+
 type Card struct {
 	ID    int    `json:"id"`
 	Front string `json:"front"`
@@ -51,6 +56,7 @@ type Session struct {
 	SessionComplete bool
 	Revealed        bool
 	GradeCounts     map[Grade]int
+	sentencePairs   []SentencePair
 	mu              sync.Mutex
 }
 
@@ -59,6 +65,12 @@ type SessionOption func(*Session)
 func WithDirection(d Direction) SessionOption {
 	return func(s *Session) {
 		s.Direction = d
+	}
+}
+
+func WithPairs(pairs []SentencePair) SessionOption {
+	return func(s *Session) {
+		s.sentencePairs = pairs
 	}
 }
 
@@ -73,38 +85,70 @@ func NewSession(opts ...SessionOption) *Session {
 	s := &Session{
 		ID:          generateID(),
 		Direction:   DirectionKoreanToEnglish,
-		TotalCards:  10,
 		GradeCounts: make(map[Grade]int),
 	}
 	for _, opt := range opts {
 		opt(s)
 	}
 
-	rawCards := HardCodedCards()
-	shuffled := make([]rawCard, len(rawCards))
-	copy(shuffled, rawCards)
-	rand.Shuffle(len(shuffled), func(i, j int) {
-		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
-	})
-
-	s.Cards = make([]Card, len(shuffled))
-	for i, rc := range shuffled {
-		switch s.Direction {
-		case DirectionKoreanToEnglish:
-			s.Cards[i] = Card{ID: rc.ID, Front: rc.Korean, Back: rc.English}
-		case DirectionEnglishToKorean:
-			s.Cards[i] = Card{ID: rc.ID, Front: rc.English, Back: rc.Korean}
-		case DirectionMixed:
-			if rand.Intn(2) == 0 {
-				s.Cards[i] = Card{ID: rc.ID, Front: rc.Korean, Back: rc.English}
-			} else {
-				s.Cards[i] = Card{ID: rc.ID, Front: rc.English, Back: rc.Korean}
-			}
-		}
+	if s.sentencePairs != nil {
+		shuffled := make([]SentencePair, len(s.sentencePairs))
+		copy(shuffled, s.sentencePairs)
+		rand.Shuffle(len(shuffled), func(i, j int) {
+			shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+		})
+		s.Cards = pairsToCards(shuffled, s.Direction)
+	} else {
+		rawCards := HardCodedCards()
+		shuffled := make([]rawCard, len(rawCards))
+		copy(shuffled, rawCards)
+		rand.Shuffle(len(shuffled), func(i, j int) {
+			shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+		})
+		s.Cards = cardsFromRaw(shuffled, s.Direction)
 	}
 
 	s.CardsRemaining = len(s.Cards)
+	s.TotalCards = len(s.Cards)
 	return s
+}
+
+func pairsToCards(pairs []SentencePair, dir Direction) []Card {
+	cards := make([]Card, len(pairs))
+	for i, p := range pairs {
+		switch dir {
+		case DirectionKoreanToEnglish:
+			cards[i] = Card{ID: i + 1, Front: p.Korean, Back: p.English}
+		case DirectionEnglishToKorean:
+			cards[i] = Card{ID: i + 1, Front: p.English, Back: p.Korean}
+		case DirectionMixed:
+			if rand.Intn(2) == 0 {
+				cards[i] = Card{ID: i + 1, Front: p.Korean, Back: p.English}
+			} else {
+				cards[i] = Card{ID: i + 1, Front: p.English, Back: p.Korean}
+			}
+		}
+	}
+	return cards
+}
+
+func cardsFromRaw(raw []rawCard, dir Direction) []Card {
+	cards := make([]Card, len(raw))
+	for i, rc := range raw {
+		switch dir {
+		case DirectionKoreanToEnglish:
+			cards[i] = Card{ID: rc.ID, Front: rc.Korean, Back: rc.English}
+		case DirectionEnglishToKorean:
+			cards[i] = Card{ID: rc.ID, Front: rc.English, Back: rc.Korean}
+		case DirectionMixed:
+			if rand.Intn(2) == 0 {
+				cards[i] = Card{ID: rc.ID, Front: rc.Korean, Back: rc.English}
+			} else {
+				cards[i] = Card{ID: rc.ID, Front: rc.English, Back: rc.Korean}
+			}
+		}
+	}
+	return cards
 }
 
 var ErrSessionComplete = errors.New("session already complete")

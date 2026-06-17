@@ -1,6 +1,18 @@
 package handler
 
-import "github.com/gin-gonic/gin"
+import (
+	"sencha/backend/internal/config"
+	"sencha/backend/internal/sengen"
+
+	"github.com/gin-gonic/gin"
+)
+
+var appConfig *config.Config
+
+func Initialize(cfg *config.Config) {
+	appConfig = cfg
+	sengen.Init(&cfg.LLM)
+}
 
 func RegisterRoutes(r *gin.Engine) {
 	r.GET("/api/health", HealthHandler)

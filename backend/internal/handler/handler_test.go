@@ -8,16 +8,34 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"sencha/backend/internal/sengen"
+	"sencha/backend/internal/session"
 	"sencha/backend/internal/store"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
+var testPairs = []session.SentencePair{
+	{Korean: "저는 학생입니다", English: "I am a student"},
+	{Korean: "그녀는 의사입니다", English: "She is a doctor"},
+	{Korean: "물을 마시고 싶어요", English: "I want to drink water"},
+	{Korean: "이 책이 얼마예요?", English: "How much is this book?"},
+	{Korean: "어디에서 왔어요?", English: "Where are you from?"},
+	{Korean: "내일 만나요", English: "Let's meet tomorrow"},
+	{Korean: "한국 음식을 좋아해요", English: "I like Korean food"},
+	{Korean: "이름이 뭐예요?", English: "What is your name?"},
+	{Korean: "버스를 타고 가요", English: "I go by bus"},
+	{Korean: "날씨가 좋아요", English: "The weather is nice"},
+}
+
 func setupRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	store.Reset()
+	sengen.SetGenerateFunc(func(count int) ([]session.SentencePair, error) {
+		return testPairs, nil
+	})
 	RegisterRoutes(r)
 	return r
 }
