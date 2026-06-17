@@ -7,7 +7,28 @@ import (
 	"net/http"
 )
 
-const serverURL = "http://localhost:8080"
+const defaultServerURL = "http://localhost:8080"
+
+const (
+	routeSessions = "/api/sessions"
+	routeReveal   = "/api/sessions/%s/reveal"
+	routeGrade    = "/api/sessions/%s/grade"
+)
+
+type Client struct {
+	baseURL string
+	http    *http.Client
+}
+
+func NewClient(baseURL string) *Client {
+	if baseURL == "" {
+		baseURL = defaultServerURL
+	}
+	return &Client{
+		baseURL: baseURL,
+		http:    http.DefaultClient,
+	}
+}
 
 type sessionResponse struct {
 	SessionID       string `json:"session_id"`
@@ -34,9 +55,9 @@ type apiError struct {
 	Code  string `json:"code"`
 }
 
-func createSession(direction string) (*sessionResponse, error) {
+func (c *Client) CreateSession(direction string) (*sessionResponse, error) {
 	body := bytes.NewBufferString(`{"direction":"` + direction + `"}`)
-	resp, err := http.Post(serverURL+"/api/sessions", "application/json", body)
+	resp, err := c.http.Post(c.baseURL+routeSessions, "application/json", body)
 	if err != nil {
 		return nil, fmt.Errorf("connection failed: %w", err)
 	}
@@ -55,8 +76,9 @@ func createSession(direction string) (*sessionResponse, error) {
 	return &sess, nil
 }
 
-func revealCard(sessionID string) (*revealResponse, error) {
-	resp, err := http.Post(serverURL+"/api/sessions/"+sessionID+"/reveal", "application/json", nil)
+func (c *Client) RevealCard(sessionID string) (*revealResponse, error) {
+	url := c.baseURL + fmt.Sprintf(routeReveal, sessionID)
+	resp, err := c.http.Post(url, "application/json", nil)
 	if err != nil {
 		return nil, fmt.Errorf("connection failed: %w", err)
 	}
@@ -75,9 +97,10 @@ func revealCard(sessionID string) (*revealResponse, error) {
 	return &reveal, nil
 }
 
-func submitGrade(sessionID, grade string) (*gradeResponse, error) {
+func (c *Client) SubmitGrade(sessionID, grade string) (*gradeResponse, error) {
+	url := c.baseURL + fmt.Sprintf(routeGrade, sessionID)
 	body := bytes.NewBufferString(`{"grade":"` + grade + `"}`)
-	resp, err := http.Post(serverURL+"/api/sessions/"+sessionID+"/grade", "application/json", body)
+	resp, err := c.http.Post(url, "application/json", body)
 	if err != nil {
 		return nil, fmt.Errorf("connection failed: %w", err)
 	}

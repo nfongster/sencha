@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func runSession(scanner *bufio.Scanner) {
+func runSession(scanner *bufio.Scanner, client *Client) {
 	fmt.Print("Direction (korean-to-english/english-to-korean/mixed) [default: korean-to-english]: ")
 	direction := "korean-to-english"
 	if scanner.Scan() {
@@ -17,7 +17,7 @@ func runSession(scanner *bufio.Scanner) {
 		}
 	}
 
-	sess, err := createSession(direction)
+	sess, err := client.CreateSession(direction)
 	if err != nil {
 		fmt.Printf("Error starting session: %v\n", err)
 		return
@@ -26,7 +26,7 @@ func runSession(scanner *bufio.Scanner) {
 	fmt.Printf("\n=== Session started (%d cards) ===\n\n", sess.TotalCards)
 
 	for {
-		reveal, err := revealCard(sess.SessionID)
+		reveal, err := client.RevealCard(sess.SessionID)
 		if err != nil {
 			fmt.Printf("Error revealing card: %v\n", err)
 			return
@@ -59,7 +59,7 @@ func runSession(scanner *bufio.Scanner) {
 			continue
 		}
 
-		result, err := submitGrade(sess.SessionID, gradeStr)
+		result, err := client.SubmitGrade(sess.SessionID, gradeStr)
 		if err != nil {
 			fmt.Printf("Error submitting grade: %v\n", err)
 			return
@@ -73,7 +73,7 @@ func runSession(scanner *bufio.Scanner) {
 				choice := strings.TrimSpace(scanner.Text())
 				switch choice {
 				case "s", "start":
-					runSession(scanner)
+					runSession(scanner, client)
 					return
 				default:
 					fmt.Println("Goodbye!")

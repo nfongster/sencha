@@ -8,6 +8,8 @@ import (
 )
 
 func main() {
+	client := NewClient("")
+
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("🍵 Sencha 🍵")
 	fmt.Println("Available commands: start, quit")
@@ -24,7 +26,7 @@ func main() {
 			fmt.Println("Goodbye!")
 			return
 		case "start":
-			runSession(scanner)
+			runSession(scanner, client)
 		default:
 			fmt.Println("Unknown command. Available: start, quit")
 		}
