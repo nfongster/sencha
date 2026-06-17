@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"bytes"
@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"sencha/backend/internal/store"
+
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +17,7 @@ import (
 func setupRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	sessionStore = newMemoryStore()
+	store.Reset()
 	RegisterRoutes(r)
 	return r
 }
@@ -300,8 +302,6 @@ func TestFullSessionFlow(t *testing.T) {
 	assert.True(t, resp.SessionComplete)
 }
 
-// helpers
-
 func createSession(t *testing.T, r *gin.Engine) string {
 	t.Helper()
 	w := httptest.NewRecorder()
@@ -312,5 +312,3 @@ func createSession(t *testing.T, r *gin.Engine) string {
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	return resp.SessionID
 }
-
-

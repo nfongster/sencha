@@ -1,41 +1,13 @@
-package handlers
+package handler
 
 import (
 	"net/http"
-	"sync"
 
-	"sencha/backend/session"
+	"sencha/backend/internal/session"
+	"sencha/backend/internal/store"
 
 	"github.com/gin-gonic/gin"
 )
-
-type memoryStore struct {
-	mu       sync.RWMutex
-	sessions map[string]*session.Session
-}
-
-var sessionStore = newMemoryStore()
-
-func newMemoryStore() *memoryStore {
-	return &memoryStore{
-		sessions: make(map[string]*session.Session),
-	}
-}
-
-func (s *memoryStore) Get(id string) (*session.Session, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	sess, ok := s.sessions[id]
-	return sess, ok
-}
-
-func (s *memoryStore) Set(id string, sess *session.Session) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.sessions[id] = sess
-}
-
-// request/response types
 
 type createSessionRequest struct {
 	Direction string `json:"direction"`
@@ -70,8 +42,6 @@ type errorResponse struct {
 	Code  string `json:"code"`
 }
 
-// handlers
-
 func CreateSessionHandler(c *gin.Context) {
 	var req createSessionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -95,7 +65,7 @@ func CreateSessionHandler(c *gin.Context) {
 		sess = session.NewSession()
 	}
 
-	sessionStore.Set(sess.ID, sess)
+	store.Set(sess.ID, sess)
 
 	c.JSON(http.StatusCreated, sessionResponse{
 		SessionID:       sess.ID,
@@ -108,7 +78,7 @@ func CreateSessionHandler(c *gin.Context) {
 
 func GetSessionHandler(c *gin.Context) {
 	id := c.Param("id")
-	sess, ok := sessionStore.Get(id)
+	sess, ok := store.Get(id)
 	if !ok {
 		c.JSON(http.StatusNotFound, errorResponse{
 			Error: "session not found",
@@ -128,7 +98,7 @@ func GetSessionHandler(c *gin.Context) {
 
 func RevealHandler(c *gin.Context) {
 	id := c.Param("id")
-	sess, ok := sessionStore.Get(id)
+	sess, ok := store.Get(id)
 	if !ok {
 		c.JSON(http.StatusNotFound, errorResponse{
 			Error: "session not found",
@@ -162,7 +132,7 @@ func RevealHandler(c *gin.Context) {
 
 func GradeHandler(c *gin.Context) {
 	id := c.Param("id")
-	sess, ok := sessionStore.Get(id)
+	sess, ok := store.Get(id)
 	if !ok {
 		c.JSON(http.StatusNotFound, errorResponse{
 			Error: "session not found",

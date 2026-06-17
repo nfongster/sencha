@@ -1,63 +1,78 @@
+# Phase 1 — Sencha: Console App + Go Server
 
-#### Phase 1: Setup the Console App and Go Server
+## Status: ✅ Complete
 
-1. **Initialize Project Structure**
-   - Create a new directory for your project (e.g., `language-learning-app`).
-   - Inside this directory, create subdirectories for the console app (`console`) and the Go server (`server`).
+All 30 tests pass. All 15 manual smoke tests passed.
 
-2. **Console App Implementation**
-   - Write a simple console application in Go.
-   - The console app should have two commands: `Start` and `Quit`.
+## Project Structure
 
-3. **Go Server Implementation**
-   - Create a Go server that listens on a port (e.g., 8080).
-   - The server will handle incoming requests from the console app.
+```
+sencha/
+├── ai/
+│   └── phase1-plan.md
+├── backend/
+│   ├── cmd/
+│   │   └── api/
+│   │       └── main.go             # Entry point
+│   ├── internal/
+│   │   ├── handler/
+│   │   │   ├── health.go
+│   │   │   ├── routes.go
+│   │   │   ├── sessions.go
+│   │   │   └── handler_test.go     # 15 tests
+│   │   ├── session/
+│   │   │   ├── session.go
+│   │   │   ├── cards.go
+│   │   │   └── session_test.go     # 15 tests
+│   │   └── store/
+│   │       └── memory.go           # In-memory session store
+│   ├── go.mod
+│   └── go.sum
+├── console/
+│   ├── main.go                     # Entry point + REPL loop
+│   ├── client.go                   # HTTP client for backend API
+│   ├── session.go                  # Session runner logic
+│   ├── go.mod
+│   └── .gitignore
+├── .gitignore
+└── README.md
+```
 
-#### Phase 2: Implement Study Session Logic
+## What's Implemented
 
-1. **Hard-Coded Data**
-   - Define a list of 10 example sentences in JSON format.
-   - Store this data in a Go file within the `server` directory.
+### REST API
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `GET` | `/api/health` | Health check |
+| `POST` | `/api/sessions` | Create session (optional `direction` param) |
+| `GET` | `/api/sessions/:id` | Get session status |
+| `POST` | `/api/sessions/:id/reveal` | Reveal current card |
+| `POST` | `/api/sessions/:id/grade` | Grade card (`pass`/`hard`/`fail`) |
 
-2. **Randomization**
-   - Write logic in the server to randomly select sentences from the hard-coded list.
+### Session Logic
+- New session shuffles all 10 cards randomly
+- Direction modes: `korean-to-english` (default), `english-to-korean`, `mixed`
+- Guards: grade-before-reveal (409), stale actions after completion (409), invalid grade (400)
+- Session tracks grade counts, returns summary on completion
 
-3. **Console App Interaction**
-   - In the console app, upon selecting `Start`, initiate a study session by connecting to the Go server.
-   - The console app should display a Korean or English sentence.
-   - Wait for user input (spacebar press to reveal answer).
+### Console REPL
+- Main menu: `start` / `quit`
+- `start` prompts for direction, creates session via API
+- Session loop: show front → ENTER to reveal → grade `p`/`h`/`f`
+- Post-session summary with option to start new or quit
 
-4. **User Response Handling**
-   - After revealing the answer, prompt the user to select one of three options: `Pass`, `Hard`, or `Fail`.
-   - Based on the user's selection, send the corresponding response back to the server.
+## Developer Notes
 
-#### Phase 3: Server Logic
+- **TDD approach used** throughout: write test → red → implement → green
+- **To run tests:** `cd backend && go test ./... -v -count=1`
+- **To run server:** `cd backend && go run ./cmd/api/`
+- **To run console:** `cd console && go run .`
 
-1. **Receive Study Session Requests**
-   - The Go server should receive a request to start a study session.
-   - Randomly select a sentence from the hard-coded list and return it to the console app.
+## Next Steps (Paused)
 
-2. **Handle User Responses**
-   - Receive the user's response (`Pass`, `Hard`, or `Fail`).
-   - For now, ignore this response as the system will not track or time the user's responses.
+### Sub-Phase A: CI/CD
+GitHub Actions workflow triggering unit tests on push/PR to `main`.
 
-3. **Session Completion**
-   - After all 10 sentences have been shown, the server can close the connection and return to listening for new requests.
+### Sub-Phase B: Docker
+Containerize the backend application.
 
-#### Phase 4: Testing
-
-1. **Run the Console App**
-   - Compile and run the console app.
-   - Test each command (`Start` and `Quit`) to ensure they work as expected.
-
-2. **Test the Study Session**
-   - Start a study session by selecting `Start`.
-   - Verify that sentences are displayed, and responses are handled correctly.
-
-#### Phase 5: Final Touches
-
-1. **Error Handling**
-   - Add basic error handling for network communication between the console app and server.
-
-2. **Documentation**
-   - Document the project structure, setup instructions, and how to run the application.
