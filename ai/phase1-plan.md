@@ -11,20 +11,27 @@ sencha/
 ├── ai/
 │   └── phase1-plan.md
 ├── backend/
-│   ├── main.go
-│   ├── handlers/
-│   │   ├── health.go
-│   │   ├── sessions.go
-│   │   ├── routes.go
-│   │   └── handlers_test.go        # 15 tests
-│   ├── session/
-│   │   ├── session.go
-│   │   ├── cards.go
-│   │   └── session_test.go         # 15 tests
+│   ├── cmd/
+│   │   └── api/
+│   │       └── main.go             # Entry point
+│   ├── internal/
+│   │   ├── handler/
+│   │   │   ├── health.go
+│   │   │   ├── routes.go
+│   │   │   ├── sessions.go
+│   │   │   └── handler_test.go     # 15 tests
+│   │   ├── session/
+│   │   │   ├── session.go
+│   │   │   ├── cards.go
+│   │   │   └── session_test.go     # 15 tests
+│   │   └── store/
+│   │       └── memory.go           # In-memory session store
 │   ├── go.mod
 │   └── go.sum
 ├── console/
-│   ├── main.go
+│   ├── main.go                     # Entry point + REPL loop
+│   ├── client.go                   # HTTP client for backend API
+│   ├── session.go                  # Session runner logic
 │   ├── go.mod
 │   └── .gitignore
 ├── .gitignore
@@ -58,7 +65,7 @@ sencha/
 
 - **TDD approach used** throughout: write test → red → implement → green
 - **To run tests:** `cd backend && go test ./... -v -count=1`
-- **To run server:** `cd backend && go run .`
+- **To run server:** `cd backend && go run ./cmd/api/`
 - **To run console:** `cd console && go run .`
 
 ## Next Steps (Paused)
