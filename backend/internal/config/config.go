@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -26,6 +27,16 @@ func Defaults() *Config {
 	}
 }
 
+func maskKey(key string) string {
+	if key == "" {
+		return "(empty)"
+	}
+	if len(key) <= 4 {
+		return "****"
+	}
+	return key[:4] + "****"
+}
+
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -43,6 +54,8 @@ func Load(path string) (*Config, error) {
 	if cfg.LLM.Model == "" {
 		cfg.LLM.Model = "qwen3:8b"
 	}
+
+	log.Printf("[config] loaded from %q — base_url=%q model=%q api_key=%q", path, cfg.LLM.BaseURL, cfg.LLM.Model, maskKey(cfg.LLM.APIKey))
 
 	return cfg, nil
 }

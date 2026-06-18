@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"text/template"
@@ -58,6 +59,7 @@ func SetGenerateFunc(fn func(int) ([]session.SentencePair, error)) {
 }
 
 func Init(cfg *config.LLMConfig) {
+	log.Printf("[sengen] Init called — base_url=%q model=%q api_key=%q", cfg.BaseURL, cfg.Model, cfg.APIKey)
 	globalConfig = cfg
 }
 
@@ -69,6 +71,8 @@ func Generate(count int) ([]session.SentencePair, error) {
 		return nil, fmt.Errorf("sengen not initialized")
 	}
 
+	log.Printf("[sengen] Generate(%d) starting — using base_url=%q model=%q", count, globalConfig.BaseURL, globalConfig.Model)
+
 	prompt, err := buildPrompt(count)
 	if err != nil {
 		return nil, fmt.Errorf("building prompt: %w", err)
@@ -76,6 +80,7 @@ func Generate(count int) ([]session.SentencePair, error) {
 
 	reply, err := callLLM(prompt)
 	if err != nil {
+		log.Printf("[sengen] Generate: callLLM failed: %v", err)
 		return nil, fmt.Errorf("LLM call failed: %w", err)
 	}
 
@@ -130,6 +135,8 @@ func callLLM(prompt string) (string, error) {
 	}
 
 	url := strings.TrimRight(globalConfig.BaseURL, "/") + "/chat/completions"
+	log.Printf("[sengen] callLLM: POST %s | model=%q | body size=%d bytes", url, globalConfig.Model, len(payload))
+
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, bytes.NewReader(payload))
 	if err != nil {
 		return "", fmt.Errorf("creating request: %w", err)
@@ -141,14 +148,18 @@ func callLLM(prompt string) (string, error) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
+		log.Printf("[sengen] callLLM: httpClient.Do error: %v", err)
 		return "", fmt.Errorf("sending request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
+		log.Printf("[sengen] callLLM: io.ReadAll error: %v", err)
 		return "", fmt.Errorf("reading response: %w", err)
 	}
+
+	log.Printf("[sengen] callLLM: response status=%d body=%s", resp.StatusCode, truncate(string(raw), 200))
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("LLM API returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(raw)))
@@ -156,6 +167,7 @@ func callLLM(prompt string) (string, error) {
 
 	var chatResp chatResponse
 	if err := json.Unmarshal(raw, &chatResp); err != nil {
+		log.Printf("[sengen] callLLM: json.Unmarshal failed: %v | raw=%s", err, truncate(string(raw), 500))
 		return "", fmt.Errorf("parsing response JSON: %w", err)
 	}
 
@@ -164,6 +176,13 @@ func callLLM(prompt string) (string, error) {
 	}
 
 	return chatResp.Choices[0].Message.Content, nil
+}
+
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }
 
 func parseResponse(text string) ([]session.SentencePair, error) {

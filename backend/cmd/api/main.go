@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"sencha/backend/internal/config"
@@ -13,10 +14,13 @@ import (
 func main() {
 	cfg, err := config.Load("config.json")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: could not load config.json: %v\n", err)
+		wd, _ := os.Getwd()
+		fmt.Fprintf(os.Stderr, "Warning: could not load config.json (tried: %s/config.json): %v\n", wd, err)
 		cfg = config.Defaults()
+		log.Printf("[main] config load failed, using defaults — base_url=%q model=%q", cfg.LLM.BaseURL, cfg.LLM.Model)
 	}
 
+	log.Printf("[main] initializing handler with config — base_url=%q model=%q", cfg.LLM.BaseURL, cfg.LLM.Model)
 	handler.Initialize(cfg)
 
 	r := gin.Default()
