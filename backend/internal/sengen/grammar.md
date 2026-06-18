@@ -1,49 +1,37 @@
 # Grammar Rules
 
 ## Basic Sentence Structure
-- Korean follows Subject-Object-Verb (SOV) order.
-- Example: 저는 물을 마셔요 (I water drink).
+- Every Korean sentence **must** end in either a verb, an adjective, or the copula `이다` (to be).
+- The language relies on two fundamental word orders:
+  - **Subject - Object - Verb (SOV)** (e.g., I hamburger eat)
+  - **Subject - Adjective (SA)** (e.g., I beautiful)
+- *Note for generation:* For this specific lesson, actual verbs and adjectives are not yet conjugated; sentences are built strictly using nouns paired with the copula `이다`.
 
-## Copula (to be)
-- Use 입니다 for formal statements: noun + 입니다.
-- Use 이에요/예요 for polite statements:
-  - 예요 after a vowel: 저예요 (it's me).
-  - 이에요 after a consonant: 학생이에요 (I am a student).
-- Use 입니까? for formal questions: noun + 입니까?
-- Use 이에요?/예요? for polite questions.
+## Copula (To Be) — 이다
+- **Form:** Attached directly to the preceding noun without a space: `Noun이다`.
+- **Function:** Links a subject to a predicate noun (`A is B`). It acts similarly to an adjective and **cannot** take an object.
+- **Sentence Structure:** `[Subject + 은/는] [Noun + 이다]`
+- **Examples:**
+  - 나는 남자이다 (I am a man)
+  - 저는 선생님이다 (I am a teacher)
 
 ## Particles
-- 은/는: topic marker. 은 after consonant, 는 after vowel.
-- 이/가: subject marker. 이 after consonant, 가 after vowel.
-- 을/를: object marker. 을 after consonant, 를 after vowel.
-- 에: location or time particle (to / at / in).
-- 에서: location of action (at / in).
-- 하고: and / with.
-- 도: also / too.
-- 의: possession ('s / of).
+- **은/는 (Topic Marker):** Appended to a noun to indicate it is the main subject or topic of the sentence.
+  - Use `는` if the preceding noun ends in a vowel (e.g., 나 becomes 나는, 저 becomes 저는).
+  - Use `은` if the preceding noun ends in a consonant (e.g., 사람 becomes 사람은, 학생 becomes 학생은).
+- **을/를 (Object Marker):** Appended to a noun to indicate it is the object of an action. 
+  - Use `를` after a vowel; use `을` after a consonant.
+  - *Constraint:* Never use object markers with `이다`, as it cannot act on an object.
 
-## Verbs: Present Tense (Polite)
-- Verb stem + 아요/어요/해요:
-  - 아요 if stem ends with ㅏ or ㅗ: 가다 → 가요 (drop 다, add 아요 contracted to 아요).
-  - 어요 otherwise: 먹다 → 먹어요.
-  - 해요 for 하다 verbs: 하다 → 해요, 공부하다 → 공부해요.
-
-## Wanting to Do Something
-- Verb stem + 고 싶어요: to want to do something.
-  - Example: 마시다 → 마시고 싶어요 (want to drink).
-  - Example: 가다 → 가고 싶어요 (want to go).
-
-## Questions
-- Add a question mark or raise intonation.
-- Use question words: 뭐 (what), 어디 (where), 언제 (when), 누구 (who), 왜 (why), 얼마 (how much).
-- Question word stays in its natural position (not fronted like English).
-
-## Negation
-- 안 + verb: short negation. Example: 안 가요 (don't go).
-- Verb stem + 지 않아요: longer negation. Example: 가지 않아요 (don't go).
-- 없다 is the negative of 있다.
-
-## Connectors
-- 그리고: and / and then.
-- 하지만: but / however.
-- 그래서: so / therefore.
+## Determiners & Pronouns (This / That)
+- **Determiners (Modifiers):** Words placed directly before nouns to specify location or context. They do not change form:
+  - `이`: This (the object is within reaching distance)
+  - `그`: That (the object is understood from context or a previous sentence)
+  - `저`: That (the object is far away and out of reach)
+- **Pronouns:** Formed by combining a determiner directly with the noun `것` (thing) with no spacing:
+  - `이것`: This thing (shortened to `이거` in casual speech)
+  - `그것`: That thing (shortened to `그거` in casual speech)
+  - `저것`: That thing over there (shortened to `저거` in casual speech)
+- **Examples:**
+  - 이것은 책이다 (This is a book)
+  - 그 사람은 학생이다 (That person is a student)
