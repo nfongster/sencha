@@ -71,7 +71,7 @@ func TestBuildPrompt_IncludesCount(t *testing.T) {
 func TestBuildPrompt_IncludesGrammar(t *testing.T) {
 	prompt, err := buildPrompt(10)
 	assert.NoError(t, err)
-	assert.Contains(t, prompt, "Subject-Object-Verb")
+	assert.Contains(t, prompt, "Subject - Object - Verb (SOV)")
 }
 
 func TestBuildPrompt_IncludesVocab(t *testing.T) {
