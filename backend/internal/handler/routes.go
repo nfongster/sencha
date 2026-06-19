@@ -23,6 +23,7 @@ func RegisterRoutes(r *gin.Engine) {
 
 	r.POST("/api/levels", CreateLevelHandler)
 	r.GET("/api/levels/:number", GetLevelHandler)
+	r.PATCH("/api/levels/:number", UpdateLevelRulesHandler)
 
 	api := r.Group("/api/sessions")
 	api.POST("", CreateSessionHandler)

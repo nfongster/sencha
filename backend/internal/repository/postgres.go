@@ -111,6 +111,18 @@ func (r *PostgresRepository) CreateLevel(l Level) error {
 	})
 }
 
+func (r *PostgresRepository) UpdateLevel(number int, grammarMD, exceptionsMD string) error {
+	var exceptions pgtype.Text
+	if exceptionsMD != "" {
+		exceptions = pgtype.Text{String: exceptionsMD, Valid: true}
+	}
+	return r.queries.UpdateLevel(r.ctx, db.UpdateLevelParams{
+		Number:       int32(number),
+		GrammarMd:    grammarMD,
+		ExceptionsMd: exceptions,
+	})
+}
+
 func (r *PostgresRepository) MaxLevelNumber() (int, error) {
 	v, err := r.queries.MaxLevelNumber(r.ctx)
 	if err != nil {

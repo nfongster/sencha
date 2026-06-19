@@ -13,6 +13,7 @@ const (
 	routeSessions = "/api/sessions"
 	routeReveal   = "/api/sessions/%s/reveal"
 	routeGrade    = "/api/sessions/%s/grade"
+	routeLevel    = "/api/levels/%d"
 )
 
 type Client struct {
@@ -95,6 +96,66 @@ func (c *Client) RevealCard(sessionID string) (*revealResponse, error) {
 		return nil, fmt.Errorf("invalid response: %w", err)
 	}
 	return &reveal, nil
+}
+
+type level struct {
+	Number       int    `json:"number"`
+	PhaseNumber  int    `json:"phase_number"`
+	GrammarMD    string `json:"grammar_md"`
+	ExceptionsMD string `json:"exceptions_md"`
+}
+
+type ruleUpdateRequest struct {
+	GrammarMD  string `json:"grammar_markdown"`
+	Exceptions string `json:"exceptions_markdown"`
+}
+
+func (c *Client) GetLevel(number int) (*level, error) {
+	resp, err := c.http.Get(c.baseURL + fmt.Sprintf(routeLevel, number))
+	if err != nil {
+		return nil, fmt.Errorf("connection failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var apiErr apiError
+		json.NewDecoder(resp.Body).Decode(&apiErr)
+		return nil, fmt.Errorf("%s (%s)", apiErr.Error, apiErr.Code)
+	}
+
+	var payload struct {
+		Level level `json:"level"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, fmt.Errorf("invalid response: %w", err)
+	}
+	return &payload.Level, nil
+}
+
+func (c *Client) UpdateLevel(number int, grammarMD, exceptions string) error {
+	body, _ := json.Marshal(ruleUpdateRequest{
+		GrammarMD:  grammarMD,
+		Exceptions: exceptions,
+	})
+	url := c.baseURL + fmt.Sprintf(routeLevel, number)
+	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("connection failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var apiErr apiError
+		json.NewDecoder(resp.Body).Decode(&apiErr)
+		return fmt.Errorf("%s (%s)", apiErr.Error, apiErr.Code)
+	}
+	return nil
 }
 
 func (c *Client) SubmitGrade(sessionID, grade string) (*gradeResponse, error) {

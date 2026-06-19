@@ -50,9 +50,9 @@ type createLevelVocabularyItem struct {
 }
 
 type createLevelRequest struct {
-	PhaseNumber int                      `json:"phase_number"`
-	GrammarMD   string                   `json:"grammar_markdown"`
-	Exceptions  string                   `json:"exceptions_markdown"`
+	PhaseNumber int                         `json:"phase_number"`
+	GrammarMD   string                      `json:"grammar_markdown"`
+	Exceptions  string                      `json:"exceptions_markdown"`
 	Vocabulary  []createLevelVocabularyItem `json:"vocabulary"`
 }
 
@@ -117,7 +117,59 @@ func CreateLevelHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":     "level created",
+		"message":      "level created",
 		"level_number": nextLevel,
 	})
+}
+
+type updateLevelRulesRequest struct {
+	GrammarMD  string `json:"grammar_markdown"`
+	Exceptions string `json:"exceptions_markdown"`
+}
+
+func UpdateLevelRulesHandler(c *gin.Context) {
+	numberStr := c.Param("number")
+	number, err := strconv.Atoi(numberStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{
+			Error: "invalid level number",
+			Code:  "INVALID_LEVEL_NUMBER",
+		})
+		return
+	}
+
+	var req updateLevelRulesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{
+			Error: "invalid request body",
+			Code:  "INVALID_REQUEST",
+		})
+		return
+	}
+
+	if req.GrammarMD == "" && req.Exceptions == "" {
+		c.JSON(http.StatusBadRequest, errorResponse{
+			Error: "at least one of grammar_markdown or exceptions_markdown must be provided",
+			Code:  "MISSING_FIELDS",
+		})
+		return
+	}
+
+	if _, err := appConfig.Repository.Level(number); err != nil {
+		c.JSON(http.StatusNotFound, errorResponse{
+			Error: "level not found",
+			Code:  "LEVEL_NOT_FOUND",
+		})
+		return
+	}
+
+	if err := appConfig.Repository.UpdateLevel(number, req.GrammarMD, req.Exceptions); err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse{
+			Error: err.Error(),
+			Code:  "LEVEL_UPDATE_ERROR",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "level rules updated"})
 }

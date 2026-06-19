@@ -127,6 +127,19 @@ func (r *memoryRepo) CreateLevel(l Level) error {
 	return nil
 }
 
+func (r *memoryRepo) UpdateLevel(number int, grammarMD, exceptionsMD string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	l, ok := r.levels[number]
+	if !ok {
+		return fmt.Errorf("level %d not found", number)
+	}
+	l.GrammarMD = grammarMD
+	l.ExceptionsMD = exceptionsMD
+	r.levels[number] = l
+	return nil
+}
+
 func (r *memoryRepo) MaxLevelNumber() (int, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
