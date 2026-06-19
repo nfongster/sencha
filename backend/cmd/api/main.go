@@ -11,16 +11,24 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
-	cfg, err := config.Load("config.json")
+func loadConfig(path string) (*config.Config, error) {
+	wd, err := os.Getwd()
 	if err != nil {
-		wd, _ := os.Getwd()
-		fmt.Fprintf(os.Stderr, "Warning: could not load config.json (tried: %s/config.json): %v\n", wd, err)
-		cfg = config.Defaults()
-		log.Printf("[main] config load failed, using defaults — base_url=%q model=%q", cfg.LLM.BaseURL, cfg.LLM.Model)
+		return nil, fmt.Errorf("getting working directory: %w", err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not load config from %s/%s: %w", wd, path, err)
+	}
+	return cfg, nil
+}
+
+func main() {
+	cfg, err := loadConfig("config.json")
+	if err != nil {
+		log.Fatalf("fatal: %v\n\nMake sure you run from the project root, e.g.:\n\tgo run ./cmd/api/\n", err)
 	}
 
-	log.Printf("[main] initializing handler with config — base_url=%q model=%q", cfg.LLM.BaseURL, cfg.LLM.Model)
 	handler.Initialize(cfg)
 
 	r := gin.Default()
