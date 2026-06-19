@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 
+	"sencha/backend/internal/repository"
 	"sencha/backend/internal/sengen"
 	"sencha/backend/internal/session"
 	"sencha/backend/internal/store"
@@ -11,7 +14,8 @@ import (
 )
 
 type createSessionRequest struct {
-	Direction string `json:"direction"`
+	Direction   string `json:"direction"`
+	LevelNumber int    `json:"level_number"`
 }
 
 type sessionResponse struct {
@@ -59,7 +63,21 @@ func CreateSessionHandler(c *gin.Context) {
 		return
 	}
 
-	pairs, err := sengen.Generate(10)
+	levelNum := req.LevelNumber
+	if levelNum < 1 {
+		levelNum = 1
+	}
+
+	levelData, err := appConfig.Repository.LoadLevelData(levelNum)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{
+			Error: fmt.Sprintf("invalid level %d: %v", levelNum, err),
+			Code:  "INVALID_LEVEL",
+		})
+		return
+	}
+
+	pairs, err := sengen.Generate(10, *levelData)
 	if err != nil {
 		c.JSON(http.StatusServiceUnavailable, errorResponse{
 			Error: "sentence generation failed",
@@ -77,6 +95,10 @@ func CreateSessionHandler(c *gin.Context) {
 
 	store.Set(sess.ID, sess)
 
+	if err := appConfig.Repository.SaveSentences(sessionsToSentences(pairs, levelNum)); err != nil {
+		log.Printf("[handler] failed to save sentences: %v", err)
+	}
+
 	c.JSON(http.StatusCreated, sessionResponse{
 		SessionID:       sess.ID,
 		Direction:       string(sess.Direction),
@@ -84,6 +106,18 @@ func CreateSessionHandler(c *gin.Context) {
 		CardsRemaining:  sess.CardsRemaining,
 		SessionComplete: sess.SessionComplete,
 	})
+}
+
+func sessionsToSentences(pairs []session.SentencePair, levelNum int) []repository.Sentence {
+	sentences := make([]repository.Sentence, len(pairs))
+	for i, p := range pairs {
+		sentences[i] = repository.Sentence{
+			LevelNumber: levelNum,
+			Korean:      p.Korean,
+			English:     p.English,
+		}
+	}
+	return sentences
 }
 
 func GetSessionHandler(c *gin.Context) {
