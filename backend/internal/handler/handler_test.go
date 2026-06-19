@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"sencha/backend/internal/config"
+	"sencha/backend/internal/repository"
 	"sencha/backend/internal/sengen"
 	"sencha/backend/internal/session"
 	"sencha/backend/internal/store"
@@ -33,9 +35,22 @@ func setupRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	store.Reset()
-	sengen.SetGenerateFunc(func(count int) ([]session.SentencePair, error) {
+	sengen.SetGenerateFunc(func(count int, _ repository.LevelData) ([]session.SentencePair, error) {
 		return testPairs, nil
 	})
+
+	repo := repository.NewMemory()
+	if err := repository.Seed(repo); err != nil {
+		panic(err)
+	}
+	Initialize(&config.Config{
+		LLM: config.LLMConfig{
+			BaseURL: "http://localhost:11434/v1",
+			Model:   "test-model",
+		},
+		Repository: repo,
+	})
+
 	RegisterRoutes(r)
 	return r
 }

@@ -3,10 +3,22 @@ package sengen
 import (
 	"testing"
 
+	"sencha/backend/internal/repository"
 	"sencha/backend/internal/session"
 
 	"github.com/stretchr/testify/assert"
 )
+
+var testLevelData = repository.LevelData{
+	GrammarMD: `# Grammar Rules
+
+## Basic Sentence Structure
+- Subject - Object - Verb (SOV)`,
+	Vocab: []repository.VocabEntry{
+		{Korean: "학생", English: "student"},
+		{Korean: "의사", English: "doctor"},
+	},
+}
 
 func TestParseResponse_BasicPairs(t *testing.T) {
 	text := `"저는 학생입니다"
@@ -65,19 +77,19 @@ func TestParseResponse_ASCIIQuotes(t *testing.T) {
 }
 
 func TestBuildPrompt_IncludesCount(t *testing.T) {
-	prompt, err := buildPrompt(5)
+	prompt, err := buildPrompt(5, testLevelData)
 	assert.NoError(t, err)
 	assert.Contains(t, prompt, "5")
 }
 
 func TestBuildPrompt_IncludesGrammar(t *testing.T) {
-	prompt, err := buildPrompt(10)
+	prompt, err := buildPrompt(10, testLevelData)
 	assert.NoError(t, err)
 	assert.Contains(t, prompt, "Subject - Object - Verb (SOV)")
 }
 
 func TestBuildPrompt_IncludesVocab(t *testing.T) {
-	prompt, err := buildPrompt(10)
+	prompt, err := buildPrompt(10, testLevelData)
 	assert.NoError(t, err)
 	assert.Contains(t, prompt, "학생")
 	assert.Contains(t, prompt, "student")
@@ -89,7 +101,7 @@ func TestBuildGrammarCheckPrompt_IncludesPairs(t *testing.T) {
 		{Korean: "그녀는 의사입니다", English: "She is a doctor"},
 	}
 
-	prompt, err := buildGrammarCheckPrompt(pairs)
+	prompt, err := buildGrammarCheckPrompt(pairs, "")
 	assert.NoError(t, err)
 	assert.Contains(t, prompt, "저는 학생입니다")
 	assert.Contains(t, prompt, "I am a student")
@@ -98,7 +110,18 @@ func TestBuildGrammarCheckPrompt_IncludesPairs(t *testing.T) {
 }
 
 func TestBuildGrammarCheckPrompt_EmptyPairs(t *testing.T) {
-	prompt, err := buildGrammarCheckPrompt(nil)
+	prompt, err := buildGrammarCheckPrompt(nil, "")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, prompt)
+}
+
+func TestBuildGrammarCheckPrompt_IncludesExceptions(t *testing.T) {
+	pairs := []session.SentencePair{
+		{Korean: "저는 학생입니다", English: "I am a student"},
+	}
+
+	prompt, err := buildGrammarCheckPrompt(pairs, "- Watch out for X\n- Watch out for Y")
+	assert.NoError(t, err)
+	assert.Contains(t, prompt, "Watch out for X")
+	assert.Contains(t, prompt, "Watch out for Y")
 }

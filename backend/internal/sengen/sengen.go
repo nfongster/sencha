@@ -14,11 +14,9 @@ import (
 	"time"
 
 	"sencha/backend/internal/config"
+	"sencha/backend/internal/repository"
 	"sencha/backend/internal/session"
 )
-
-//go:embed grammar.md
-var grammarMD string
 
 //go:embed prompt.tmpl
 var promptTmplSrc string
@@ -33,7 +31,8 @@ type promptData struct {
 }
 
 type gramCheckData struct {
-	Pairs string
+	Pairs      string
+	Exceptions string
 }
 
 type chatMessage struct {
@@ -59,9 +58,11 @@ var httpClient = &http.Client{Timeout: 60 * time.Second}
 
 // testGenerateFunc, when set, replaces the real generation logic for tests.
 // This allows handler tests to avoid depending on an actual LLM.
-var testGenerateFunc func(int) ([]session.SentencePair, error)
+type GenerateFunc func(int, repository.LevelData) ([]session.SentencePair, error)
 
-func SetGenerateFunc(fn func(int) ([]session.SentencePair, error)) {
+var testGenerateFunc GenerateFunc
+
+func SetGenerateFunc(fn GenerateFunc) {
 	testGenerateFunc = fn
 }
 
@@ -70,9 +71,9 @@ func Init(cfg *config.LLMConfig) {
 	globalConfig = cfg
 }
 
-func Generate(count int) ([]session.SentencePair, error) {
+func Generate(count int, data repository.LevelData) ([]session.SentencePair, error) {
 	if testGenerateFunc != nil {
-		return testGenerateFunc(count)
+		return testGenerateFunc(count, data)
 	}
 	if globalConfig == nil {
 		return nil, fmt.Errorf("sengen not initialized")
@@ -80,7 +81,7 @@ func Generate(count int) ([]session.SentencePair, error) {
 
 	log.Printf("[sengen] Generate(%d) starting — using base_url=%q model=%q", count, globalConfig.BaseURL, globalConfig.Model)
 
-	prompt, err := buildPrompt(count)
+	prompt, err := buildPrompt(count, data)
 	if err != nil {
 		return nil, fmt.Errorf("building prompt: %w", err)
 	}
@@ -104,7 +105,7 @@ func Generate(count int) ([]session.SentencePair, error) {
 		return nil, fmt.Errorf("LLM returned no sentences")
 	}
 
-	checked, gramLatency, err := grammarCheck(pairs)
+	checked, gramLatency, err := grammarCheck(pairs, data.ExceptionsMD)
 	if err != nil {
 		log.Printf("[sengen] Grammar check failed: %v", err)
 		return nil, fmt.Errorf("grammar check failed: %w", err)
@@ -115,21 +116,21 @@ func Generate(count int) ([]session.SentencePair, error) {
 	return checked, nil
 }
 
-func buildPrompt(count int) (string, error) {
+func buildPrompt(count int, data repository.LevelData) (string, error) {
 	tmpl, err := template.New("prompt").Parse(promptTmplSrc)
 	if err != nil {
 		return "", fmt.Errorf("parsing prompt template: %w", err)
 	}
 
 	var vocabBuf strings.Builder
-	for _, entry := range vocabList {
+	for _, entry := range data.Vocab {
 		vocabBuf.WriteString(fmt.Sprintf("- %s = %s\n", entry.Korean, entry.English))
 	}
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, promptData{
 		Count:   count,
-		Grammar: grammarMD,
+		Grammar: data.GrammarMD,
 		Vocab:   vocabBuf.String(),
 	})
 	if err != nil {
@@ -139,7 +140,7 @@ func buildPrompt(count int) (string, error) {
 	return buf.String(), nil
 }
 
-func buildGrammarCheckPrompt(pairs []session.SentencePair) (string, error) {
+func buildGrammarCheckPrompt(pairs []session.SentencePair, exceptions string) (string, error) {
 	tmpl, err := template.New("gramcheck").Parse(gramCheckTmplSrc)
 	if err != nil {
 		return "", fmt.Errorf("parsing grammar check template: %w", err)
@@ -152,7 +153,8 @@ func buildGrammarCheckPrompt(pairs []session.SentencePair) (string, error) {
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, gramCheckData{
-		Pairs: strings.Join(lines, "\n"),
+		Pairs:      strings.Join(lines, "\n"),
+		Exceptions: exceptions,
 	})
 	if err != nil {
 		return "", fmt.Errorf("executing grammar check template: %w", err)
@@ -161,8 +163,8 @@ func buildGrammarCheckPrompt(pairs []session.SentencePair) (string, error) {
 	return buf.String(), nil
 }
 
-func grammarCheck(pairs []session.SentencePair) ([]session.SentencePair, time.Duration, error) {
-	prompt, err := buildGrammarCheckPrompt(pairs)
+func grammarCheck(pairs []session.SentencePair, exceptions string) ([]session.SentencePair, time.Duration, error) {
+	prompt, err := buildGrammarCheckPrompt(pairs, exceptions)
 	if err != nil {
 		return nil, 0, fmt.Errorf("building grammar check prompt: %w", err)
 	}

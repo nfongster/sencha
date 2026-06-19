@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"sencha/backend/internal/repository"
 )
 
 type LLMConfig struct {
@@ -14,7 +16,10 @@ type LLMConfig struct {
 }
 
 type Config struct {
-	LLM LLMConfig `json:"llm"`
+	LLM         LLMConfig `json:"llm"`
+	DatabaseURL string    `json:"database_url"`
+
+	Repository repository.Repository `json:"-"`
 }
 
 func maskKey(key string) string {
