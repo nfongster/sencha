@@ -23,10 +23,17 @@ var grammarMD string
 //go:embed prompt.tmpl
 var promptTmplSrc string
 
+//go:embed gramchecker.tmpl
+var gramCheckTmplSrc string
+
 type promptData struct {
 	Count   int
 	Grammar string
 	Vocab   string
+}
+
+type gramCheckData struct {
+	Pairs string
 }
 
 type chatMessage struct {
@@ -78,11 +85,15 @@ func Generate(count int) ([]session.SentencePair, error) {
 		return nil, fmt.Errorf("building prompt: %w", err)
 	}
 
+	genStart := time.Now()
 	reply, err := callLLM(prompt)
+	genLatency := time.Since(genStart)
 	if err != nil {
 		log.Printf("[sengen] Generate: callLLM failed: %v", err)
 		return nil, fmt.Errorf("LLM call failed: %w", err)
 	}
+
+	log.Printf("[sengen] Generation step complete — latency=%.3fms", float64(genLatency.Microseconds())/1000)
 
 	pairs, err := parseResponse(reply)
 	if err != nil {
@@ -93,7 +104,17 @@ func Generate(count int) ([]session.SentencePair, error) {
 		return nil, fmt.Errorf("LLM returned no sentences")
 	}
 
-	return pairs, nil
+	gramStart := time.Now()
+	checked, err := grammarCheck(pairs)
+	gramLatency := time.Since(gramStart)
+	if err != nil {
+		log.Printf("[sengen] Grammar check failed: %v", err)
+		return nil, fmt.Errorf("grammar check failed: %w", err)
+	}
+
+	log.Printf("[sengen] Grammar check step complete — latency=%.3fms", float64(gramLatency.Microseconds())/1000)
+
+	return checked, nil
 }
 
 func buildPrompt(count int) (string, error) {
@@ -118,6 +139,51 @@ func buildPrompt(count int) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+func buildGrammarCheckPrompt(pairs []session.SentencePair) (string, error) {
+	tmpl, err := template.New("gramcheck").Parse(gramCheckTmplSrc)
+	if err != nil {
+		return "", fmt.Errorf("parsing grammar check template: %w", err)
+	}
+
+	var lines []string
+	for _, p := range pairs {
+		lines = append(lines, fmt.Sprintf("%q\n%q", p.Korean, p.English))
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, gramCheckData{
+		Pairs: strings.Join(lines, "\n"),
+	})
+	if err != nil {
+		return "", fmt.Errorf("executing grammar check template: %w", err)
+	}
+
+	return buf.String(), nil
+}
+
+func grammarCheck(pairs []session.SentencePair) ([]session.SentencePair, error) {
+	prompt, err := buildGrammarCheckPrompt(pairs)
+	if err != nil {
+		return nil, fmt.Errorf("building grammar check prompt: %w", err)
+	}
+
+	reply, err := callLLM(prompt)
+	if err != nil {
+		return nil, fmt.Errorf("grammar check LLM call failed: %w", err)
+	}
+
+	checked, err := parseResponse(reply)
+	if err != nil {
+		return nil, fmt.Errorf("parsing grammar check response: %w", err)
+	}
+
+	if len(checked) == 0 {
+		return nil, fmt.Errorf("grammar check returned no sentences")
+	}
+
+	return checked, nil
 }
 
 func callLLM(prompt string) (string, error) {
