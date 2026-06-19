@@ -3,6 +3,8 @@ package sengen
 import (
 	"testing"
 
+	"sencha/backend/internal/session"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -79,4 +81,24 @@ func TestBuildPrompt_IncludesVocab(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, prompt, "학생")
 	assert.Contains(t, prompt, "student")
+}
+
+func TestBuildGrammarCheckPrompt_IncludesPairs(t *testing.T) {
+	pairs := []session.SentencePair{
+		{Korean: "저는 학생입니다", English: "I am a student"},
+		{Korean: "그녀는 의사입니다", English: "She is a doctor"},
+	}
+
+	prompt, err := buildGrammarCheckPrompt(pairs)
+	assert.NoError(t, err)
+	assert.Contains(t, prompt, "저는 학생입니다")
+	assert.Contains(t, prompt, "I am a student")
+	assert.Contains(t, prompt, "그녀는 의사입니다")
+	assert.Contains(t, prompt, "She is a doctor")
+}
+
+func TestBuildGrammarCheckPrompt_EmptyPairs(t *testing.T) {
+	prompt, err := buildGrammarCheckPrompt(nil)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, prompt)
 }
