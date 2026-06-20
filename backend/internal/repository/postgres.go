@@ -298,14 +298,34 @@ func (r *PostgresRepository) LoadLevelData(levelNumber int) (*LevelData, error) 
 		return nil, fmt.Errorf("level %d not found: %w", levelNumber, err)
 	}
 
-	vocab, err := r.VocabularyUpTo(levelNumber)
+	currentVocab, err := r.VocabularyForLevel(levelNumber)
 	if err != nil {
-		return nil, fmt.Errorf("loading vocabulary up to %d: %w", levelNumber, err)
+		return nil, fmt.Errorf("loading vocabulary for level %d: %w", levelNumber, err)
+	}
+
+	rows, err := r.pool.Query(r.ctx,
+		`SELECT korean, english FROM vocabulary WHERE level_number != $1 ORDER BY RANDOM() LIMIT 10`,
+		levelNumber)
+	if err != nil {
+		return nil, fmt.Errorf("sampling random vocabulary: %w", err)
+	}
+	defer rows.Close()
+
+	var randomVocab []VocabEntry
+	for rows.Next() {
+		var v VocabEntry
+		if err := rows.Scan(&v.Korean, &v.English); err != nil {
+			return nil, err
+		}
+		randomVocab = append(randomVocab, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return &LevelData{
 		GrammarMD:    l.GrammarMD,
-		Vocab:        vocab,
+		Vocab:        append(currentVocab, randomVocab...),
 		ExceptionsMD: l.ExceptionsMD,
 	}, nil
 }

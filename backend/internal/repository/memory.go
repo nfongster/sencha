@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"math/rand"
 	"sort"
 	"sync"
 )
@@ -252,14 +253,26 @@ func (r *memoryRepo) LoadLevelData(levelNumber int) (*LevelData, error) {
 		return nil, err
 	}
 
-	vocab, err := r.VocabularyUpTo(levelNumber)
-	if err != nil {
-		return nil, err
+	r.mu.RLock()
+	currentVocab := r.vocabByLevel[levelNumber]
+
+	var pool []VocabEntry
+	for n, entries := range r.vocabByLevel {
+		if n != levelNumber {
+			pool = append(pool, entries...)
+		}
+	}
+	r.mu.RUnlock()
+
+	rand.Shuffle(len(pool), func(i, j int) { pool[i], pool[j] = pool[j], pool[i] })
+	n := 10
+	if len(pool) < n {
+		n = len(pool)
 	}
 
 	return &LevelData{
 		GrammarMD:    l.GrammarMD,
-		Vocab:        vocab,
+		Vocab:        append(currentVocab, pool[:n]...),
 		ExceptionsMD: l.ExceptionsMD,
 	}, nil
 }
