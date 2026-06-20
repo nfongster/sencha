@@ -8,7 +8,8 @@ const App = {
   cardStates: [],
   gradeCounts: { pass: 0, hard: 0, fail: 0 },
   sessionComplete: false,
-  lastReveal: null,
+  currentCard: null,
+  backRevealed: false,
   rulesData: null,
 };
 
@@ -216,8 +217,10 @@ async function startSession() {
     App.currentIndex = 0;
     App.sessionComplete = false;
     App.gradeCounts = { pass: 0, hard: 0, fail: 0 };
-    App.lastReveal = null;
+    App.currentCard = null;
+    App.backRevealed = false;
     App.cardStates = new Array(data.total_cards).fill('#4b5563');
+    await revealCard();
     location.hash = '#session';
   } catch (err) {
     showError('Failed to create session: ' + err.message);
@@ -234,13 +237,19 @@ function renderSession(app) {
   const total = App.totalCards;
   const graph = buildProgressGraph(App.cardStates, App.currentIndex);
 
-  const cardHtml = App.lastReveal
-    ? renderCardContent(App.lastReveal)
-    : '<div class="card-front" style="color:#6b7280;">Press Reveal to see the card</div>';
+  let cardHtml;
+  let actionsHtml;
 
-  const actionsHtml = App.lastReveal
-    ? renderGradeButtons()
-    : '<button class="btn btn-green btn-large" onclick="revealCard()" id="reveal-btn">Reveal</button>';
+  if (!App.currentCard) {
+    cardHtml = '<div class="card-front" style="color:#6b7280;">Loading card...</div>';
+    actionsHtml = '';
+  } else if (!App.backRevealed) {
+    cardHtml = renderCardFront(App.currentCard);
+    actionsHtml = '<button class="btn btn-green btn-large" onclick="backReveal()" id="reveal-btn">Reveal</button>';
+  } else {
+    cardHtml = renderCardContent(App.currentCard);
+    actionsHtml = renderGradeButtons();
+  }
 
   app.innerHTML = `
     ${graph}
@@ -252,6 +261,10 @@ function renderSession(app) {
     </div>
     <div class="session-card" id="session-card">${cardHtml}</div>
     <div class="session-actions" id="session-actions">${actionsHtml}</div>`;
+}
+
+function renderCardFront(card) {
+  return `<div class="card-front">${escapeHtml(card.front)}</div>`;
 }
 
 function renderCardContent(reveal) {
@@ -271,13 +284,20 @@ function renderGradeButtons() {
 async function revealCard() {
   try {
     const data = await API.revealCard(App.sessionId);
-    App.lastReveal = data;
+    App.currentCard = data;
+    App.backRevealed = false;
     App.cardStates[App.currentIndex] = '#6b7280';
     const app = document.getElementById('app');
     if (app) renderSession(app);
   } catch (err) {
     showError('Failed to reveal card: ' + err.message);
   }
+}
+
+function backReveal() {
+  App.backRevealed = true;
+  const app = document.getElementById('app');
+  if (app) renderSession(app);
 }
 
 async function gradeCard(grade) {
@@ -293,9 +313,9 @@ async function gradeCard(grade) {
       location.hash = '#summary';
     } else {
       App.currentIndex++;
-      App.lastReveal = null;
-      const app = document.getElementById('app');
-      if (app) renderSession(app);
+      App.currentCard = null;
+      App.backRevealed = false;
+      await revealCard();
     }
   } catch (err) {
     showError('Failed to grade card: ' + err.message);
