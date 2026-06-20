@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"sencha/backend/internal/repository/db"
 
@@ -294,33 +293,33 @@ func (r *PostgresRepository) SaveSentences(sentences []Sentence) error {
 }
 
 func (r *PostgresRepository) LoadLevelData(levelNumber int) (*LevelData, error) {
-	levels, err := r.LevelsUpTo(levelNumber)
+	l, err := r.Level(levelNumber)
 	if err != nil {
-		return nil, fmt.Errorf("loading levels up to %d: %w", levelNumber, err)
-	}
-	if len(levels) == 0 {
-		return nil, fmt.Errorf("no levels found up to %d", levelNumber)
+		return nil, fmt.Errorf("level %d not found: %w", levelNumber, err)
 	}
 
-	var grammarParts []string
-	var exceptionsMD string
-	for _, l := range levels {
-		if l.GrammarMD != "" {
-			grammarParts = append(grammarParts, l.GrammarMD)
-		}
-		if l.ExceptionsMD != "" && l.Number == levelNumber {
-			exceptionsMD = l.ExceptionsMD
-		}
-	}
-
-	vocab, err := r.VocabularyUpTo(levelNumber)
+	rows, err := r.pool.Query(r.ctx,
+		`SELECT korean, english FROM vocabulary ORDER BY RANDOM() LIMIT 50`)
 	if err != nil {
-		return nil, fmt.Errorf("loading vocabulary up to %d: %w", levelNumber, err)
+		return nil, fmt.Errorf("sampling random vocabulary: %w", err)
+	}
+	defer rows.Close()
+
+	var vocab []VocabEntry
+	for rows.Next() {
+		var v VocabEntry
+		if err := rows.Scan(&v.Korean, &v.English); err != nil {
+			return nil, err
+		}
+		vocab = append(vocab, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return &LevelData{
-		GrammarMD:    strings.Join(grammarParts, "\n\n"),
+		GrammarMD:    l.GrammarMD,
 		Vocab:        vocab,
-		ExceptionsMD: exceptionsMD,
+		ExceptionsMD: l.ExceptionsMD,
 	}, nil
 }

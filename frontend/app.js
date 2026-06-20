@@ -11,6 +11,7 @@ const App = {
   currentCard: null,
   backRevealed: false,
   rulesData: null,
+  selectedLevel: null,
 };
 
 // ── API Client ──
@@ -37,8 +38,14 @@ const API = {
   put(path, body) { return this.request('PUT', path, body); },
   del(path) { return this.request('DELETE', path); },
 
-  createSession(direction) {
-    return this.post('/api/sessions', { direction });
+  createSession(direction, levelNumber) {
+    const body = { direction };
+    if (levelNumber) body.level_number = levelNumber;
+    return this.post('/api/sessions', body);
+  },
+
+  maxLevelNumber() {
+    return this.get('/api/levels/max');
   },
 
   revealCard(sessionId) {
@@ -115,6 +122,12 @@ function router() {
     case '#home':
       renderHome(app);
       break;
+    case '#level-select':
+      renderLevelSelect(app);
+      break;
+    case '#level-picker':
+      renderLevelPicker(app);
+      break;
     case '#setup':
       renderSetup(app);
       break;
@@ -126,6 +139,9 @@ function router() {
       break;
     case '#rules':
       renderRules(app);
+      break;
+    case '#how-it-works':
+      renderHowItWorks(app);
       break;
     default:
       renderHome(app);
@@ -191,8 +207,182 @@ function renderHome(app) {
   app.innerHTML = `
     <div class="home-title">Sencha</div>
     <div class="home-buttons">
-      <button class="btn btn-large btn-block" onclick="location.hash='#setup'">[1] Start</button>
-      <button class="btn btn-large btn-block" onclick="location.hash='#rules'">[2] Rules</button>
+      <button class="btn btn-large btn-block" onclick="location.hash='#level-select'">[1] Start</button>
+      <button class="btn btn-large btn-block" onclick="location.hash='#rules'">[2] Journey</button>
+      <button class="btn btn-large btn-block" onclick="location.hash='#how-it-works'">[3] How it Works</button>
+    </div>`;
+}
+
+// ── View: Level Select ──
+let latestLevel = null;
+
+async function renderLevelSelect(app) {
+  app.innerHTML = '<div class="loading">Loading...</div>';
+  try {
+    const data = await API.maxLevelNumber();
+    latestLevel = data.max;
+  } catch (_) {
+    latestLevel = null;
+  }
+  app.innerHTML = `
+    <div class="home-title">Select Level</div>
+    <div class="home-buttons">
+      <button class="btn btn-large btn-block" onclick="startWithLatest()">[1] Latest Level${latestLevel ? ' (' + latestLevel + ')' : ''}</button>
+      <button class="btn btn-large btn-block" onclick="location.hash='#level-picker'">[2] Choose a previous level</button>
+      <button class="btn btn-large btn-block" onclick="location.hash='#home'" style="margin-top:24px;font-size:14px;">← Back</button>
+    </div>`;
+}
+
+function startWithLatest() {
+  App.selectedLevel = latestLevel || 1;
+  location.hash = '#setup';
+}
+
+// ── View: Level Picker ──
+async function renderLevelPicker(app) {
+  app.innerHTML = '<div class="loading">Loading levels...</div>';
+  try {
+    const phasesData = await API.listPhases();
+    const phases = phasesData.phases || [];
+    const levelsByPhase = {};
+    for (const phase of phases) {
+      const levelsData = await API.levelsInPhase(phase.number);
+      levelsByPhase[phase.number] = levelsData.levels || [];
+    }
+
+    let treeHtml = '';
+    for (const phase of phases) {
+      const levels = levelsByPhase[phase.number] || [];
+      let levelDots = '';
+      for (const level of levels) {
+        levelDots += `<div class="level-node picker-level" data-level="${level.number}">${level.number}</div>`;
+      }
+      treeHtml += `
+        <div class="phase-node active">
+          <div class="phase-dot"></div>
+          <span class="phase-name">${escapeHtml(phase.name)}</span>
+        </div>
+        <div class="phase-levels">
+          <div class="level-nodes">${levelDots || '<span style="color:#6b7280;font-size:13px;">No levels</span>'}</div>
+        </div>`;
+    }
+
+    app.innerHTML = `
+      <div class="rules-layout">
+        <div class="rules-sidebar">
+          <button class="btn btn-sm" onclick="location.hash='#level-select'" style="margin-bottom:12px;">← Back</button>
+          ${treeHtml || '<div style="color:#6b7280;padding:12px;">No levels yet</div>'}
+        </div>
+        <div class="rules-content">
+          <div style="color:#6b7280;text-align:center;padding:60px 0;">Select a level to start a session</div>
+        </div>
+      </div>`;
+
+    app.querySelectorAll('.picker-level').forEach(el => {
+      el.addEventListener('click', () => {
+        const levelNum = parseInt(el.dataset.level);
+        showLevelDetailForPicker(levelNum);
+      });
+    });
+  } catch (err) {
+    showError('Failed to load levels: ' + err.message);
+    app.innerHTML = '';
+  }
+}
+
+async function showLevelDetailForPicker(levelNumber) {
+  try {
+    const data = await API.getLevel(levelNumber);
+    const level = data.level;
+    const vocab = data.vocabulary || [];
+
+    let grammarHtml = level.grammar_md ? marked.parse(level.grammar_md) : '<em>No grammar</em>';
+    if (level.exceptions_md) {
+      grammarHtml += '<h3>Exceptions</h3>' + marked.parse(level.exceptions_md);
+    }
+
+    let vocabHtml = '';
+    if (vocab.length === 0) {
+      vocabHtml = '<em style="color:#6b7280;">No vocabulary for this level</em>';
+    } else {
+      vocabHtml = '<ul class="vocab-list">';
+      for (const v of vocab) {
+        vocabHtml += `<li><span class="korean">${escapeHtml(v.korean)}</span><span class="english">${escapeHtml(v.english)}</span></li>`;
+      }
+      vocabHtml += '</ul>';
+    }
+
+    showModal(`
+      <div class="modal">
+        <button class="modal-close">&times;</button>
+        <div class="modal-title">Level ${level.number}</div>
+        <div class="modal-body">
+          <div class="modal-body-col">
+            <h3>Grammar</h3>
+            <div class="grammar-content">${grammarHtml}</div>
+          </div>
+          <div class="modal-body-col">
+            <h3>Vocabulary</h3>
+            ${vocabHtml}
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-sm btn-green" onclick="startFromPicker(${level.number})">Start</button>
+        </div>
+      </div>`);
+  } catch (err) {
+    showError('Failed to load level: ' + err.message);
+  }
+}
+
+function startFromPicker(levelNumber) {
+  closeModal();
+  App.selectedLevel = levelNumber;
+  location.hash = '#setup';
+}
+
+// ── View: How it Works ──
+function renderHowItWorks(app) {
+  app.innerHTML = `
+    <div style="width:100%;text-align:left;margin-bottom:12px;"><button class="btn btn-sm" onclick="location.hash='#home'">← Home</button></div>
+    <div style="max-width:640px;margin:0 auto;text-align:left;">
+
+      <h1 style="color:#fff;font-size:28px;margin:0 0 24px;">How Sencha Works</h1>
+
+      <h2 style="color:#4ade80;font-size:18px;margin:0 0 8px;">Phases &amp; Levels</h2>
+      <p style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 24px;">
+        The curriculum is split into <strong>phases</strong> (broad topic groups).
+        Each phase contains numbered <strong>levels</strong>. Every level introduces
+        new grammar rules and vocabulary.
+      </p>
+
+      <h2 style="color:#4ade80;font-size:18px;margin:0 0 8px;">Sentence Generation</h2>
+      <p style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 8px;">
+        When you start a session for a level, the LLM generates practice sentences using:
+      </p>
+      <ul style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 24px;padding-left:20px;">
+        <li><strong>Grammar</strong> — only the current level's rules</li>
+        <li><strong>Vocabulary</strong> — 50 randomly chosen words from across all levels (or all words if fewer than 50 exist)</li>
+      </ul>
+
+      <h2 style="color:#4ade80;font-size:18px;margin:0 0 8px;">Grading</h2>
+      <p style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 24px;">
+        After revealing a card, rate yourself:<br>
+        <span style="color:#4ade80;">Pass</span> — you knew it &nbsp;|&nbsp;
+        <span style="color:#fbbf24;">Hard</span> — you struggled &nbsp;|&nbsp;
+        <span style="color:#f87171;">Fail</span> — you didn't know it
+      </p>
+
+      <h2 style="color:#4ade80;font-size:18px;margin:0 0 8px;">Keyboard Shortcuts</h2>
+      <p style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 24px;">
+        <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">1</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">2</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">3</code> grade &nbsp;|&nbsp;
+        <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">ENTER</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">SPACE</code> reveal &nbsp;|&nbsp;
+        <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">ESC</code> close &nbsp;|&nbsp;
+        <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">S</code> new session &nbsp;|&nbsp;
+        <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">Q</code> quit
+      </p>
+
     </div>`;
 }
 
@@ -228,7 +418,7 @@ function renderSetup(app) {
 
 async function startSession() {
   try {
-    const data = await API.createSession(selectedDirection);
+    const data = await API.createSession(selectedDirection, App.selectedLevel);
     App.sessionId = data.session_id;
     App.direction = data.direction;
     App.totalCards = data.total_cards;
@@ -809,8 +999,14 @@ document.addEventListener('keydown', (e) => {
   const hash = location.hash || '#home';
 
   if (hash === '#home') {
-    if (e.key === '1') location.hash = '#setup';
+    if (e.key === '1') location.hash = '#level-select';
     if (e.key === '2') location.hash = '#rules';
+    if (e.key === '3') { location.hash = '#how-it-works'; e.preventDefault(); }
+  }
+
+  if (hash === '#level-select') {
+    if (e.key === '1') { startWithLatest(); e.preventDefault(); }
+    if (e.key === '2') { location.hash = '#level-picker'; e.preventDefault(); }
   }
 
   if (hash === '#setup') {

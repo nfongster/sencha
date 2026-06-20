@@ -2,8 +2,8 @@ package repository
 
 import (
 	"fmt"
+	"math/rand"
 	"sort"
-	"strings"
 	"sync"
 )
 
@@ -248,29 +248,27 @@ func (r *memoryRepo) SaveSentences(sentences []Sentence) error {
 }
 
 func (r *memoryRepo) LoadLevelData(levelNumber int) (*LevelData, error) {
-	levels, err := r.LevelsUpTo(levelNumber)
+	l, err := r.Level(levelNumber)
 	if err != nil {
 		return nil, err
-	}
-	var grammarParts []string
-	var exceptions string
-	for _, l := range levels {
-		if l.GrammarMD != "" {
-			grammarParts = append(grammarParts, l.GrammarMD)
-		}
-		if l.Number == levelNumber && l.ExceptionsMD != "" {
-			exceptions = l.ExceptionsMD
-		}
 	}
 
-	vocab, err := r.VocabularyUpTo(levelNumber)
-	if err != nil {
-		return nil, err
+	r.mu.RLock()
+	var pool []VocabEntry
+	for _, entries := range r.vocabByLevel {
+		pool = append(pool, entries...)
+	}
+	r.mu.RUnlock()
+
+	rand.Shuffle(len(pool), func(i, j int) { pool[i], pool[j] = pool[j], pool[i] })
+	n := 50
+	if len(pool) < n {
+		n = len(pool)
 	}
 
 	return &LevelData{
-		GrammarMD:    strings.Join(grammarParts, "\n\n"),
-		Vocab:        vocab,
-		ExceptionsMD: exceptions,
+		GrammarMD:    l.GrammarMD,
+		Vocab:        pool[:n],
+		ExceptionsMD: l.ExceptionsMD,
 	}, nil
 }

@@ -2,6 +2,8 @@
 
 **Status:** ✅ Merged to `main`.
 
+> **⚠️ MAINTENANCE NOTE:** The "How Sencha Works" popup in `frontend/app.js` (`showHowItWorks`) describes the sentence generation rules, vocabulary selection, grading system, and keyboard shortcuts. If any of these behaviors change, the popup text must be updated to match.
+
 What was done:
 - Added `UpdateLevel` to the Repository interface (memory + postgres implementations)
 - Added `PATCH /api/levels/:number` endpoint for updating grammar/exceptions
