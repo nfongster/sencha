@@ -34,6 +34,7 @@ const API = {
   get(path) { return this.request('GET', path); },
   post(path, body) { return this.request('POST', path, body); },
   patch(path, body) { return this.request('PATCH', path, body); },
+  put(path, body) { return this.request('PUT', path, body); },
   del(path) { return this.request('DELETE', path); },
 
   createSession(direction) {
@@ -85,6 +86,10 @@ const API = {
       grammar_markdown: grammarMD,
       exceptions_markdown: exceptionsMD,
     });
+  },
+
+  setVocabulary(number, entries) {
+    return this.put('/api/levels/' + number + '/vocabulary', { vocabulary: entries });
   },
 };
 
@@ -464,6 +469,7 @@ async function showLevelDetail(levelNumber) {
         </div>
         <div class="form-actions">
           <button class="btn btn-sm" onclick="showEditLevelForm(${level.number})">Edit Rules</button>
+          <button class="btn btn-sm" onclick="showEditVocabForm(${level.number})">Edit Vocab</button>
           <button class="btn btn-sm" style="background:#b91c1c;" onclick="confirmDeleteLevel(${level.number})">Delete Level</button>
         </div>
       </div>`);
@@ -572,6 +578,79 @@ async function submitEditPhase() {
     renderRules(document.getElementById('app'));
   } catch (err) {
     showError('Failed to update phase: ' + err.message);
+  }
+}
+
+// ── Modal: Edit Vocabulary ──
+async function showEditVocabForm(levelNumber) {
+  try {
+    closeModal();
+    const data = await API.getLevel(levelNumber);
+    const vocab = data.level_vocabulary || [];
+
+    let rowsHtml = '';
+    if (vocab.length === 0) {
+      rowsHtml = `
+        <div class="vocab-row">
+          <input type="text" class="vocab-korean" placeholder="Korean">
+          <input type="text" class="vocab-english" placeholder="English">
+          <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>
+        </div>`;
+    } else {
+      for (const v of vocab) {
+        rowsHtml += `
+          <div class="vocab-row">
+            <input type="text" class="vocab-korean" value="${escapeHtml(v.korean)}">
+            <input type="text" class="vocab-english" value="${escapeHtml(v.english)}">
+            <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>
+          </div>`;
+      }
+    }
+
+    showModal(`
+      <div class="modal">
+        <button class="modal-close">&times;</button>
+        <div class="modal-title">Edit Level ${levelNumber} Vocabulary</div>
+        <div class="modal-form">
+          <div id="edit-vocab-rows">${rowsHtml}</div>
+          <button class="btn btn-sm" onclick="addEditVocabRow()" style="margin-top:8px;">+ Add another word</button>
+          <div class="form-actions">
+            <button class="btn btn-sm" onclick="showLevelDetail(${levelNumber})">Cancel</button>
+            <button class="btn btn-sm btn-green" onclick="submitEditVocab(${levelNumber})">Save</button>
+          </div>
+        </div>
+      </div>`);
+  } catch (err) {
+    showError('Failed to load vocabulary: ' + err.message);
+  }
+}
+
+function addEditVocabRow() {
+  const container = document.getElementById('edit-vocab-rows');
+  const row = document.createElement('div');
+  row.className = 'vocab-row';
+  row.innerHTML = `
+    <input type="text" class="vocab-korean" placeholder="Korean">
+    <input type="text" class="vocab-english" placeholder="English">
+    <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>`;
+  container.appendChild(row);
+}
+
+async function submitEditVocab(levelNumber) {
+  const rows = document.querySelectorAll('#edit-vocab-rows .vocab-row');
+  const vocabulary = [];
+  for (const row of rows) {
+    const korean = row.querySelector('.vocab-korean').value.trim();
+    const english = row.querySelector('.vocab-english').value.trim();
+    if (korean && english) {
+      vocabulary.push({ korean, english });
+    }
+  }
+  try {
+    await API.setVocabulary(levelNumber, vocabulary);
+    showLevelDetail(levelNumber);
+  } catch (err) {
+    showError('Failed to save vocabulary: ' + err.message);
   }
 }
 

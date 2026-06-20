@@ -216,6 +216,45 @@ func (r *PostgresRepository) LevelsUpTo(number int) ([]Level, error) {
 	return levels, nil
 }
 
+func (r *PostgresRepository) VocabularyForLevel(levelNumber int) ([]VocabEntry, error) {
+	rows, err := r.queries.VocabularyForLevel(r.ctx, int32(levelNumber))
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]VocabEntry, len(rows))
+	for i, row := range rows {
+		entries[i] = VocabEntry{Korean: row.Korean, English: row.English}
+	}
+	return entries, nil
+}
+
+func (r *PostgresRepository) SetVocabulary(levelNumber int, entries []VocabEntry) error {
+	tx, err := r.pool.Begin(r.ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(r.ctx)
+
+	q := r.queries.WithTx(tx)
+	if err := q.DeleteVocabularyForLevel(r.ctx, int32(levelNumber)); err != nil {
+		return err
+	}
+	if len(entries) > 0 {
+		params := make([]db.AddVocabularyParams, len(entries))
+		for i, e := range entries {
+			params[i] = db.AddVocabularyParams{
+				LevelNumber: int32(levelNumber),
+				Korean:      e.Korean,
+				English:     e.English,
+			}
+		}
+		if _, err := q.AddVocabulary(r.ctx, params); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(r.ctx)
+}
+
 func (r *PostgresRepository) VocabularyUpTo(levelNumber int) ([]VocabEntry, error) {
 	rows, err := r.queries.VocabularyUpTo(r.ctx, int32(levelNumber))
 	if err != nil {

@@ -38,9 +38,19 @@ func GetLevelHandler(c *gin.Context) {
 		return
 	}
 
+	levelVocab, err := appConfig.Repository.VocabularyForLevel(number)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse{
+			Error: "failed to fetch level vocabulary",
+			Code:  "VOCAB_ERROR",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"level":      level,
-		"vocabulary": vocab,
+		"level":            level,
+		"vocabulary":       vocab,
+		"level_vocabulary": levelVocab,
 	})
 }
 
@@ -194,4 +204,55 @@ func DeleteLevelHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "level deleted"})
+}
+
+type updateVocabularyRequest struct {
+	Vocabulary []createLevelVocabularyItem `json:"vocabulary"`
+}
+
+func UpdateLevelVocabularyHandler(c *gin.Context) {
+	numberStr := c.Param("number")
+	number, err := strconv.Atoi(numberStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{
+			Error: "invalid level number",
+			Code:  "INVALID_LEVEL_NUMBER",
+		})
+		return
+	}
+
+	var req updateVocabularyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{
+			Error: "invalid request body",
+			Code:  "INVALID_REQUEST",
+		})
+		return
+	}
+
+	if _, err := appConfig.Repository.Level(number); err != nil {
+		c.JSON(http.StatusNotFound, errorResponse{
+			Error: "level not found",
+			Code:  "LEVEL_NOT_FOUND",
+		})
+		return
+	}
+
+	entries := make([]repository.VocabEntry, len(req.Vocabulary))
+	for i, v := range req.Vocabulary {
+		entries[i] = repository.VocabEntry{
+			Korean:  v.Korean,
+			English: v.English,
+		}
+	}
+
+	if err := appConfig.Repository.SetVocabulary(number, entries); err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse{
+			Error: "failed to update vocabulary",
+			Code:  "VOCAB_UPDATE_ERROR",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "vocabulary updated"})
 }

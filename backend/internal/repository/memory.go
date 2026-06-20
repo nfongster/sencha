@@ -8,21 +8,23 @@ import (
 )
 
 type memoryRepo struct {
-	mu         sync.RWMutex
-	phases     map[int]Phase
-	levels     map[int]Level
-	vocab      []VocabEntry // level_number → entries
-	sentences  []Sentence
-	nextLevel  int
+	mu           sync.RWMutex
+	phases       map[int]Phase
+	levels       map[int]Level
+	vocab        []VocabEntry // cumulative, for VocabularyUpTo
+	vocabByLevel map[int][]VocabEntry
+	sentences    []Sentence
+	nextLevel    int
 }
 
 func NewMemory() Repository {
 	return &memoryRepo{
-		phases:    make(map[int]Phase),
-		levels:    make(map[int]Level),
-		vocab:     nil,
-		sentences: nil,
-		nextLevel: 1,
+		phases:       make(map[int]Phase),
+		levels:       make(map[int]Level),
+		vocab:        nil,
+		vocabByLevel: make(map[int][]VocabEntry),
+		sentences:    nil,
+		nextLevel:    1,
 	}
 }
 
@@ -211,6 +213,19 @@ func (r *memoryRepo) LevelsUpTo(number int) ([]Level, error) {
 	return out, nil
 }
 
+func (r *memoryRepo) VocabularyForLevel(levelNumber int) ([]VocabEntry, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.vocabByLevel[levelNumber], nil
+}
+
+func (r *memoryRepo) SetVocabulary(levelNumber int, entries []VocabEntry) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.vocabByLevel[levelNumber] = entries
+	return nil
+}
+
 func (r *memoryRepo) VocabularyUpTo(levelNumber int) ([]VocabEntry, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -221,6 +236,7 @@ func (r *memoryRepo) AddVocabulary(levelNumber int, entries []VocabEntry) error 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.vocab = append(r.vocab, entries...)
+	r.vocabByLevel[levelNumber] = append(r.vocabByLevel[levelNumber], entries...)
 	return nil
 }
 

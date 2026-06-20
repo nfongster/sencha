@@ -19,7 +19,9 @@ type Repository interface {
 
 	// Vocabulary
 	VocabularyUpTo(levelNumber int) ([]VocabEntry, error)
+	VocabularyForLevel(levelNumber int) ([]VocabEntry, error)
 	AddVocabulary(levelNumber int, entries []VocabEntry) error
+	SetVocabulary(levelNumber int, entries []VocabEntry) error
 
 	// Sentences
 	SaveSentences(sentences []Sentence) error
