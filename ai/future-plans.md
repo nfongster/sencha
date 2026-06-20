@@ -10,16 +10,7 @@ The current model assumes Korean only. Add a top-level "Journey" container (one 
 
 Phase 3's original plan noted this as a deferred item — the database schema and repository interface currently have no journey concept.
 
----
 
-## Sentence reuse / regenerate strategy
-
-Every session currently makes a fresh LLM call to generate 10 sentences. Generated sentences are saved to the `sentences` table but never read back. A future strategy could:
-- Check for existing unsentenced sentences for the current level before generating.
-- Implement a TTL-based regeneration policy.
-- Allow manual regeneration of specific sentences.
-
----
 
 ## Grammar accumulation for 100+ levels
 
