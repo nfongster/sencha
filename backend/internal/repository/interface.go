@@ -4,6 +4,8 @@ type Repository interface {
 	// Phases
 	ListPhases() ([]Phase, error)
 	CreatePhase(p Phase) error
+	UpdatePhase(number int, name string) error
+	DeletePhase(number int) error
 	MaxPhaseNumber() (int, error)
 
 	// Levels
@@ -11,6 +13,7 @@ type Repository interface {
 	Level(number int) (*Level, error)
 	CreateLevel(l Level) error
 	UpdateLevel(number int, grammarMD, exceptionsMD string) error
+	DeleteLevel(number int) error
 	MaxLevelNumber() (int, error)
 	LevelsUpTo(number int) ([]Level, error)
 

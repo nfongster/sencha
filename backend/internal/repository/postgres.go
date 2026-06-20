@@ -56,6 +56,62 @@ func (r *PostgresRepository) CreatePhase(p Phase) error {
 	})
 }
 
+func (r *PostgresRepository) DeletePhase(number int) error {
+	tx, err := r.pool.Begin(r.ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(r.ctx)
+
+	if _, err := tx.Exec(r.ctx, `DELETE FROM sentences WHERE level_number IN (SELECT number FROM levels WHERE phase_number = $1)`, number); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(r.ctx, `DELETE FROM vocabulary WHERE level_number IN (SELECT number FROM levels WHERE phase_number = $1)`, number); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(r.ctx, `DELETE FROM levels WHERE phase_number = $1`, number); err != nil {
+		return err
+	}
+	result, err := tx.Exec(r.ctx, `DELETE FROM phases WHERE number = $1`, number)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("phase %d not found", number)
+	}
+	return tx.Commit(r.ctx)
+}
+
+func (r *PostgresRepository) DeleteLevel(number int) error {
+	tx, err := r.pool.Begin(r.ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(r.ctx)
+
+	var phaseNumber int32
+	if err := tx.QueryRow(r.ctx, `SELECT phase_number FROM levels WHERE number = $1`, number).Scan(&phaseNumber); err != nil {
+		return fmt.Errorf("level %d not found", number)
+	}
+	if _, err := tx.Exec(r.ctx, `DELETE FROM sentences WHERE level_number = $1`, number); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(r.ctx, `DELETE FROM vocabulary WHERE level_number = $1`, number); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(r.ctx, `DELETE FROM levels WHERE number = $1`, number); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(r.ctx, `UPDATE levels SET number = number - 1 WHERE phase_number = $1 AND number > $2`, phaseNumber, number); err != nil {
+		return err
+	}
+	return tx.Commit(r.ctx)
+}
+
+func (r *PostgresRepository) UpdatePhase(number int, name string) error {
+	return r.queries.UpdatePhase(r.ctx, int32(number), name)
+}
+
 func (r *PostgresRepository) MaxPhaseNumber() (int, error) {
 	v, err := r.queries.MaxPhaseNumber(r.ctx)
 	if err != nil {

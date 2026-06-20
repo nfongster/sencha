@@ -20,10 +20,13 @@ func RegisterRoutes(r *gin.Engine) {
 	r.GET("/api/phases", ListPhasesHandler)
 	r.POST("/api/phases", CreatePhaseHandler)
 	r.GET("/api/phases/:number/levels", LevelsInPhaseHandler)
+	r.PATCH("/api/phases/:number", UpdatePhaseHandler)
+	r.DELETE("/api/phases/:number", DeletePhaseHandler)
 
 	r.POST("/api/levels", CreateLevelHandler)
 	r.GET("/api/levels/:number", GetLevelHandler)
 	r.PATCH("/api/levels/:number", UpdateLevelRulesHandler)
+	r.DELETE("/api/levels/:number", DeleteLevelHandler)
 
 	api := r.Group("/api/sessions")
 	api.POST("", CreateSessionHandler)

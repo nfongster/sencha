@@ -34,6 +34,7 @@ const API = {
   get(path) { return this.request('GET', path); },
   post(path, body) { return this.request('POST', path, body); },
   patch(path, body) { return this.request('PATCH', path, body); },
+  del(path) { return this.request('DELETE', path); },
 
   createSession(direction) {
     return this.post('/api/sessions', { direction });
@@ -53,6 +54,18 @@ const API = {
 
   createPhase(number, name) {
     return this.post('/api/phases', { number, name });
+  },
+
+  updatePhase(number, name) {
+    return this.patch('/api/phases/' + number, { name });
+  },
+
+  deletePhase(number) {
+    return this.del('/api/phases/' + number);
+  },
+
+  deleteLevel(number) {
+    return this.del('/api/levels/' + number);
   },
 
   levelsInPhase(phaseNumber) {
@@ -119,6 +132,7 @@ window.addEventListener('load', router);
 
 // ── Modal ──
 function showModal(html) {
+  closeModal();
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = html;
@@ -382,6 +396,8 @@ function renderRulesContent(app) {
       <div class="phase-node active">
         <div class="phase-dot"></div>
         <span class="phase-name">${escapeHtml(phase.name)}</span>
+        <span class="phase-edit" data-phase="${phase.number}" data-name="${escapeHtml(phase.name)}" onclick="showEditPhaseModal(this.dataset.phase, this.dataset.name)" style="margin-left:auto;cursor:pointer;font-size:14px;color:#6b7280;">&#9998;</span>
+        <span data-phase="${phase.number}" data-name="${escapeHtml(phase.name)}" style="cursor:pointer;font-size:14px;color:#f87171;margin-left:8px;" onclick="confirmDeletePhase(this.dataset.phase, this.dataset.name)">&#128465;</span>
       </div>
       <div class="phase-levels">
         <div class="level-nodes">${levelDots || '<span style="color:#6b7280;font-size:13px;">No levels</span>'}</div>
@@ -448,6 +464,7 @@ async function showLevelDetail(levelNumber) {
         </div>
         <div class="form-actions">
           <button class="btn btn-sm" onclick="showEditLevelForm(${level.number})">Edit Rules</button>
+          <button class="btn btn-sm" style="background:#b91c1c;" onclick="confirmDeleteLevel(${level.number})">Delete Level</button>
         </div>
       </div>`);
   } catch (err) {
@@ -520,9 +537,111 @@ async function submitAddPhase() {
   try {
     await API.createPhase(number, name);
     closeModal();
-    location.hash = '#rules';
+    renderRules(document.getElementById('app'));
   } catch (err) {
     showError('Failed to create phase: ' + err.message);
+  }
+}
+
+// ── Modal: Edit Phase ──
+function showEditPhaseModal(number, name) {
+  showModal(`
+    <div class="modal">
+      <button class="modal-close">&times;</button>
+      <div class="modal-title">Edit Phase ${number}</div>
+      <div class="modal-form">
+        <label>Phase Number</label>
+        <input type="number" id="edit-phase-number" value="${number}" disabled>
+        <label>Phase Name</label>
+        <input type="text" id="edit-phase-name" value="${name}">
+        <div class="form-actions">
+          <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-sm btn-green" onclick="submitEditPhase()">Save</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+async function submitEditPhase() {
+  const number = parseInt(document.getElementById('edit-phase-number').value);
+  const name = document.getElementById('edit-phase-name').value.trim();
+  if (!name) { showError('Phase name is required'); return; }
+  try {
+    await API.updatePhase(number, name);
+    closeModal();
+    renderRules(document.getElementById('app'));
+  } catch (err) {
+    showError('Failed to update phase: ' + err.message);
+  }
+}
+
+// ── Confirm Delete ──
+function confirmDeletePhase(number, name) {
+  const { levelsByPhase } = App.rulesData;
+  const levelCount = (levelsByPhase[parseInt(number)] || []).length;
+  const warning = levelCount > 0
+    ? `<p style="color:#f87171;margin-top:8px;">This will permanently delete <strong>${levelCount} level${levelCount > 1 ? 's' : ''}</strong> in this phase.</p>`
+    : '';
+  showModal(`
+    <div class="modal" style="max-width:420px;">
+      <button class="modal-close">&times;</button>
+      <div class="modal-title" style="color:#f87171;">Delete Phase?</div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong>${escapeHtml(name)}</strong>?</p>
+        ${warning}
+        <p style="margin-top:8px;font-size:13px;color:#6b7280;">This action cannot be undone.</p>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-sm" style="background:#b91c1c;" onclick="submitDeletePhase(${number})">Delete Phase</button>
+      </div>
+    </div>`);
+}
+
+async function submitDeletePhase(number) {
+  closeModal();
+  try {
+    await API.deletePhase(number);
+    renderRules(document.getElementById('app'));
+  } catch (err) {
+    showError('Failed to delete phase: ' + err.message);
+  }
+}
+
+function confirmDeleteLevel(number) {
+  const { phases, levelsByPhase } = App.rulesData;
+  let renumberCount = 0;
+  for (const phase of phases) {
+    const levels = levelsByPhase[phase.number] || [];
+    renumberCount = levels.filter(l => l.number > number).length;
+    if (renumberCount > 0) break;
+  }
+  const warning = renumberCount > 0
+    ? `<p style="color:#fbbf24;margin-top:8px;"><strong>${renumberCount} level${renumberCount > 1 ? 's' : ''}</strong> after this one will be renumbered.</p>`
+    : '';
+  showModal(`
+    <div class="modal" style="max-width:420px;">
+      <button class="modal-close">&times;</button>
+      <div class="modal-title" style="color:#f87171;">Delete Level?</div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong>Level ${number}</strong>?</p>
+        ${warning}
+        <p style="margin-top:8px;font-size:13px;color:#6b7280;">This action cannot be undone.</p>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-sm" style="background:#b91c1c;" onclick="submitDeleteLevel(${number})">Delete Level</button>
+      </div>
+    </div>`);
+}
+
+async function submitDeleteLevel(number) {
+  closeModal();
+  try {
+    await API.deleteLevel(number);
+    renderRules(document.getElementById('app'));
+  } catch (err) {
+    showError('Failed to delete level: ' + err.message);
   }
 }
 
@@ -598,7 +717,7 @@ async function submitAddLevel() {
       vocabulary,
     });
     closeModal();
-    location.hash = '#rules';
+    renderRules(document.getElementById('app'));
   } catch (err) {
     showError('Failed to create level: ' + err.message);
   }
