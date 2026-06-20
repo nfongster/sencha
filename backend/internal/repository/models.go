@@ -13,8 +13,9 @@ type Level struct {
 }
 
 type VocabEntry struct {
-	Korean  string `json:"korean"`
-	English string `json:"english"`
+	Korean   string `json:"korean"`
+	English  string `json:"english"`
+	Category string `json:"category"`
 }
 
 type Sentence struct {

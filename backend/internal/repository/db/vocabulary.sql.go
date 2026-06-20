@@ -13,50 +13,7 @@ type AddVocabularyParams struct {
 	LevelNumber int32
 	Korean      string
 	English     string
-}
-
-const vocabularyUpTo = `-- name: VocabularyUpTo :many
-SELECT korean, english
-FROM vocabulary
-WHERE level_number <= $1
-ORDER BY level_number, id
-`
-
-type VocabularyUpToRow struct {
-	Korean  string
-	English string
-}
-
-const vocabularyForLevel = `-- name: VocabularyForLevel :many
-SELECT korean, english
-FROM vocabulary
-WHERE level_number = $1
-ORDER BY id
-`
-
-type VocabularyForLevelRow struct {
-	Korean  string
-	English string
-}
-
-func (q *Queries) VocabularyForLevel(ctx context.Context, levelNumber int32) ([]VocabularyForLevelRow, error) {
-	rows, err := q.db.Query(ctx, vocabularyForLevel, levelNumber)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []VocabularyForLevelRow
-	for rows.Next() {
-		var i VocabularyForLevelRow
-		if err := rows.Scan(&i.Korean, &i.English); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+	Category    string
 }
 
 const deleteVocabularyForLevel = `-- name: DeleteVocabularyForLevel :exec
@@ -68,6 +25,52 @@ func (q *Queries) DeleteVocabularyForLevel(ctx context.Context, levelNumber int3
 	return err
 }
 
+const vocabularyForLevel = `-- name: VocabularyForLevel :many
+SELECT korean, english, category
+FROM vocabulary
+WHERE level_number = $1
+ORDER BY id
+`
+
+type VocabularyForLevelRow struct {
+	Korean   string
+	English  string
+	Category string
+}
+
+func (q *Queries) VocabularyForLevel(ctx context.Context, levelNumber int32) ([]VocabularyForLevelRow, error) {
+	rows, err := q.db.Query(ctx, vocabularyForLevel, levelNumber)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []VocabularyForLevelRow
+	for rows.Next() {
+		var i VocabularyForLevelRow
+		if err := rows.Scan(&i.Korean, &i.English, &i.Category); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const vocabularyUpTo = `-- name: VocabularyUpTo :many
+SELECT korean, english, category
+FROM vocabulary
+WHERE level_number <= $1
+ORDER BY level_number, id
+`
+
+type VocabularyUpToRow struct {
+	Korean   string
+	English  string
+	Category string
+}
+
 func (q *Queries) VocabularyUpTo(ctx context.Context, levelNumber int32) ([]VocabularyUpToRow, error) {
 	rows, err := q.db.Query(ctx, vocabularyUpTo, levelNumber)
 	if err != nil {
@@ -77,7 +80,7 @@ func (q *Queries) VocabularyUpTo(ctx context.Context, levelNumber int32) ([]Voca
 	var items []VocabularyUpToRow
 	for rows.Next() {
 		var i VocabularyUpToRow
-		if err := rows.Scan(&i.Korean, &i.English); err != nil {
+		if err := rows.Scan(&i.Korean, &i.English, &i.Category); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -3,9 +3,11 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"sencha/backend/internal/repository/db"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -108,7 +110,7 @@ func (r *PostgresRepository) DeleteLevel(number int) error {
 }
 
 func (r *PostgresRepository) UpdatePhase(number int, name string) error {
-	return r.queries.UpdatePhase(r.ctx, int32(number), name)
+	return r.queries.UpdatePhase(r.ctx, db.UpdatePhaseParams{Number: int32(number), Name: name})
 }
 
 func (r *PostgresRepository) MaxPhaseNumber() (int, error) {
@@ -222,7 +224,7 @@ func (r *PostgresRepository) VocabularyForLevel(levelNumber int) ([]VocabEntry, 
 	}
 	entries := make([]VocabEntry, len(rows))
 	for i, row := range rows {
-		entries[i] = VocabEntry{Korean: row.Korean, English: row.English}
+		entries[i] = VocabEntry{Korean: row.Korean, English: row.English, Category: row.Category}
 	}
 	return entries, nil
 }
@@ -235,7 +237,7 @@ func (r *PostgresRepository) SetVocabulary(levelNumber int, entries []VocabEntry
 	defer tx.Rollback(r.ctx)
 
 	q := r.queries.WithTx(tx)
-	if err := q.DeleteVocabularyForLevel(r.ctx, int32(levelNumber)); err != nil {
+		if err := q.DeleteVocabularyForLevel(r.ctx, int32(levelNumber)); err != nil {
 		return err
 	}
 	if len(entries) > 0 {
@@ -245,6 +247,7 @@ func (r *PostgresRepository) SetVocabulary(levelNumber int, entries []VocabEntry
 				LevelNumber: int32(levelNumber),
 				Korean:      e.Korean,
 				English:     e.English,
+				Category:    e.Category,
 			}
 		}
 		if _, err := q.AddVocabulary(r.ctx, params); err != nil {
@@ -261,7 +264,7 @@ func (r *PostgresRepository) VocabularyUpTo(levelNumber int) ([]VocabEntry, erro
 	}
 	entries := make([]VocabEntry, len(rows))
 	for i, row := range rows {
-		entries[i] = VocabEntry{Korean: row.Korean, English: row.English}
+		entries[i] = VocabEntry{Korean: row.Korean, English: row.English, Category: row.Category}
 	}
 	return entries, nil
 }
@@ -273,10 +276,28 @@ func (r *PostgresRepository) AddVocabulary(levelNumber int, entries []VocabEntry
 			LevelNumber: int32(levelNumber),
 			Korean:      e.Korean,
 			English:     e.English,
+			Category:    e.Category,
 		}
 	}
 	_, err := r.queries.AddVocabulary(r.ctx, params)
 	return err
+}
+
+func (r *PostgresRepository) Categories() ([]string, error) {
+	rows, err := r.pool.Query(r.ctx, `SELECT DISTINCT category FROM vocabulary ORDER BY category`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var cats []string
+	for rows.Next() {
+		var c string
+		if err := rows.Scan(&c); err != nil {
+			return nil, err
+		}
+		cats = append(cats, c)
+	}
+	return cats, rows.Err()
 }
 
 func (r *PostgresRepository) SaveSentences(sentences []Sentence) error {
@@ -298,17 +319,51 @@ func (r *PostgresRepository) LoadLevelData(levelNumber int) (*LevelData, error) 
 		return nil, fmt.Errorf("level %d not found: %w", levelNumber, err)
 	}
 
-	rows, err := r.pool.Query(r.ctx,
-		`SELECT korean, english FROM vocabulary ORDER BY RANDOM() LIMIT 50`)
+	categories, err := r.Categories()
 	if err != nil {
-		return nil, fmt.Errorf("sampling random vocabulary: %w", err)
+		return nil, fmt.Errorf("fetching categories: %w", err)
+	}
+
+	target := 50
+	perCat := target / len(categories)
+	remainder := target % len(categories)
+
+	var subQueries []string
+	var args []int32
+	argIdx := 1
+	for i := range categories {
+		n := perCat
+		if i == 0 {
+			n += remainder
+		}
+		subQueries = append(subQueries,
+			fmt.Sprintf(`(SELECT korean, english, category FROM vocabulary WHERE category = $%d ORDER BY RANDOM() LIMIT $%d)`, argIdx, argIdx+1))
+		args = append(args, int32(n))
+		argIdx += 2
+	}
+
+	// If no categories exist (empty DB), fall back to flat random
+	var rows pgx.Rows
+	if len(subQueries) == 0 {
+		rows, err = r.pool.Query(r.ctx, `SELECT korean, english, category FROM vocabulary ORDER BY RANDOM() LIMIT 50`)
+	} else {
+		query := strings.Join(subQueries, " UNION ALL ") + " ORDER BY RANDOM()"
+		// Build args: [cat1, limit1, cat2, limit2, ...]
+		catArgs := make([]interface{}, 0, len(args)*2)
+		for i, cat := range categories {
+			catArgs = append(catArgs, cat, args[i])
+		}
+		rows, err = r.pool.Query(r.ctx, query, catArgs...)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("sampling vocabulary by category: %w", err)
 	}
 	defer rows.Close()
 
 	var vocab []VocabEntry
 	for rows.Next() {
 		var v VocabEntry
-		if err := rows.Scan(&v.Korean, &v.English); err != nil {
+		if err := rows.Scan(&v.Korean, &v.English, &v.Category); err != nil {
 			return nil, err
 		}
 		vocab = append(vocab, v)

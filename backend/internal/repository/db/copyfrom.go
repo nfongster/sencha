@@ -32,6 +32,7 @@ func (r iteratorForAddVocabulary) Values() ([]interface{}, error) {
 		r.rows[0].LevelNumber,
 		r.rows[0].Korean,
 		r.rows[0].English,
+		r.rows[0].Category,
 	}, nil
 }
 
@@ -40,7 +41,7 @@ func (r iteratorForAddVocabulary) Err() error {
 }
 
 func (q *Queries) AddVocabulary(ctx context.Context, arg []AddVocabularyParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"vocabulary"}, []string{"level_number", "korean", "english"}, &iteratorForAddVocabulary{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"vocabulary"}, []string{"level_number", "korean", "english", "category"}, &iteratorForAddVocabulary{rows: arg})
 }
 
 // iteratorForSaveSentences implements pgx.CopyFromSource.
