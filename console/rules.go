@@ -38,7 +38,11 @@ func runRules(scanner *bufio.Scanner, client *Client) {
 			fmt.Println("Usage: set <level_number> <grammar.md> [exceptions.md]")
 			return
 		}
-		rulesSet(client, number, parts[2], parts[3])
+		exceptionsPath := ""
+		if len(parts) > 3 {
+			exceptionsPath = parts[3]
+		}
+		rulesSet(client, number, parts[2], exceptionsPath)
 	default:
 		fmt.Printf("Unknown rules subcommand: %s\n", cmd)
 	}
