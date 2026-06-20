@@ -38,7 +38,7 @@ Stack: Go (Gin), PostgreSQL (pgx + golang-migrate + sqlc), in-memory fallback.
 | `POST` | `/api/phases` | `{"number": int, "name": string}` | `{"message": "phase created"}` |
 | `PATCH` | `/api/phases/:number` | `{"name": string}` | `{"message": "phase updated"}` |
 | `DELETE` | `/api/phases/:number` | — | `{"message": "phase deleted"}` |
-| `GET` | `/api/phases/:number/levels` | — | `{"levels": [{number, phase_number, grammar_md, exceptions_md}]}` |
+| `GET` | `/api/phases/:number/levels` | — | `{"levels": [{number, phase_number, grammar_md}]}` |
 
 **Phase creation rule:** `number` must be between 1 and `max_phase + 1` (sequential).
 
@@ -46,19 +46,19 @@ Stack: Go (Gin), PostgreSQL (pgx + golang-migrate + sqlc), in-memory fallback.
 
 | Method | Route | Request | Response |
 |--------|-------|---------|----------|
-| `POST` | `/api/levels` | `{"phase_number": int, "grammar_markdown": string, "exceptions_markdown": string, "vocabulary": [{korean, english}]}` | `{"message": "level created", "level_number": int}` |
+| `POST` | `/api/levels` | `{"phase_number": int, "grammar_markdown": string, "vocabulary": [{korean, english}]}` | `{"message": "level created", "level_number": int}` |
 | `GET` | `/api/levels/max` | — | `{"max": int}` |
-| `GET` | `/api/levels/:number` | — | `{"level": {number, phase_number, grammar_md, exceptions_md}, "vocabulary": [{korean, english}], "level_vocabulary": [{korean, english}]}` |
-| `PATCH` | `/api/levels/:number` | `{"grammar_markdown": string, "exceptions_markdown": string}` | `{"message": "level rules updated"}` |
+| `GET` | `/api/levels/:number` | — | `{"level": {number, phase_number, grammar_md}, "vocabulary": [{korean, english}], "level_vocabulary": [{korean, english}]}` |
+| `PATCH` | `/api/levels/:number` | `{"grammar_markdown": string}` | `{"message": "level rules updated"}` |
 | `PUT` | `/api/levels/:number/vocabulary` | `{"vocabulary": [{korean, english}]}` | `{"message": "vocabulary updated"}` |
 | `DELETE` | `/api/levels/:number` | — | `{"message": "level deleted"}` |
 
 **Level creation rule:** auto-assigns `max_level + 1`. Grammar is required. Phase must exist.
 
-**`PATCH /api/levels/:number`:** at least one of `grammar_markdown` or `exceptions_markdown` must be provided.
+**`PATCH /api/levels/:number`:** accepts `grammar_markdown` (required).
 
 **`GET /api/levels/:number`:** returns three fields:
-- `level` — the level metadata (grammar_md, exceptions_md)
+- `level` — the level metadata (grammar_md)
 - `vocabulary` — cumulative vocab from levels 1..N
 - `level_vocabulary` — vocab specific to this level only
 
@@ -106,7 +106,7 @@ All errors return `{"error": string, "code": string}` with appropriate HTTP stat
 | `VOCAB_ERROR` | Vocab fetch failure |
 | `MISSING_NAME` | Name field required |
 | `MISSING_GRAMMAR` | Grammar field required |
-| `MISSING_FIELDS` | Neither grammar nor exceptions provided |
+
 | `INVALID_REQUEST` | JSON parse failure |
 | `INTERNAL_ERROR` | Unexpected server error |
 
@@ -129,7 +129,7 @@ type Repository interface {
     LevelsInPhase(phaseNumber int) ([]Level, error)
     Level(number int) (*Level, error)
     CreateLevel(l Level) error
-    UpdateLevel(number int, grammarMD, exceptionsMD string) error
+    UpdateLevel(number int, grammarMD string) error
     DeleteLevel(number int) error
     MaxLevelNumber() (int, error)
     LevelsUpTo(number int) ([]Level, error)
@@ -175,8 +175,7 @@ CREATE TABLE phases (
 CREATE TABLE levels (
     number        INTEGER PRIMARY KEY,
     phase_number  INTEGER NOT NULL REFERENCES phases(number),
-    grammar_md    TEXT NOT NULL,
-    exceptions_md TEXT
+    grammar_md    TEXT NOT NULL
 );
 
 CREATE TABLE vocabulary (
@@ -204,10 +203,9 @@ type Phase struct {
 }
 
 type Level struct {
-    Number       int    `json:"number"`
-    PhaseNumber  int    `json:"phase_number"`
-    GrammarMD    string `json:"grammar_md"`
-    ExceptionsMD string `json:"exceptions_md"`
+    Number      int    `json:"number"`
+    PhaseNumber int    `json:"phase_number"`
+    GrammarMD   string `json:"grammar_md"`
 }
 
 type VocabEntry struct {
@@ -222,9 +220,8 @@ type Sentence struct {
 }
 
 type LevelData struct {
-    GrammarMD    string
-    Vocab        []VocabEntry
-    ExceptionsMD string
+    GrammarMD string
+    Vocab     []VocabEntry
 }
 ```
 
@@ -313,7 +310,7 @@ Generate(count, levelData)
   ├── 1. buildPrompt(grammar + 50 random vocab words)
   │     └── callLLM(prompt) → parseResponse(reply)
   │
-  └── 2. grammarCheck(pairs, exceptions)
+  └── 2. grammarCheck(pairs)
         └── callLLM(checkPrompt) → parseResponse(reply)
         └── returns corrected pairs
 ```
@@ -338,10 +335,7 @@ Respond with ONLY the sentence pairs, one per line:
 Verify and correct each Korean-English sentence pair:
 1. Is the Korean sentence grammatically correct? Fix it if not.
 2. Is the English translation correct for the (corrected) Korean? Fix it if not.
-{if exceptions}
-Pay special attention to these common mistakes:
-{exceptions}
-{endif}
+
 Return ONLY the corrected list...
 Pairs:
 {pairs}
@@ -390,7 +384,7 @@ Files in `console/`:
 - `main.go` — REPL loop, commands: `start`, `rules`, `quit`.
 - `client.go` — HTTP client wrapping all API endpoints.
 - `session.go` — session runner (front→ENTER→grade loop in terminal).
-- `rules.go` — `rules get <N>` and `rules set <N> <grammar.md> [exceptions.md]` subcommands.
+- `rules.go` — `rules get <N>` and `rules set <N> <grammar.md>` subcommands.
 
 ---
 

@@ -81,7 +81,7 @@ const API = {
   levelsInPhase(phaseNumber),
   getLevel(levelNumber),
   createLevel(data),
-  updateLevel(number, grammarMD, exceptionsMD),
+  updateLevel(number, grammarMD),
   setVocabulary(number, entries),
 };
 ```
@@ -214,7 +214,7 @@ Phase 2 ●  [✏] [🗑]        │
 Click a level node → **level detail modal**:
 - Grammar (rendered via marked.js) + Exceptions
 - Vocabulary list
-- **[Edit Rules]** button → inline form (grammar textarea + exceptions textarea + Save/Cancel)
+- **[Edit Rules]** button → inline form (grammar textarea + Save/Cancel)
 - **[Edit Vocab]** button → inline form (dynamic rows: Korean + English inputs, add/remove, Save/Cancel)
 - **[Delete Level]** button → confirmation modal with renumbering warning
 
@@ -224,7 +224,7 @@ Click a level node → **level detail modal**:
 
 **Add Phase** modal: number (auto-filled next sequential) + name → `POST /api/phases`.
 
-**Add Level** modal: phase dropdown + grammar textarea + exceptions textarea + dynamic vocab rows → `POST /api/levels`.
+**Add Level** modal: phase dropdown + grammar textarea + dynamic vocab rows → `POST /api/levels`.
 
 ### How It Works (`#how-it-works`)
 
