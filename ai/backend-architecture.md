@@ -365,9 +365,11 @@ When `testGenerateFunc` is set, `Generate()` delegates to it instead of calling 
 
 ### Vocab sampling
 
-- Samples 50 random words from the cumulative vocabulary of levels 1..N.
-- If total vocab ≤ 50, uses all words.
-- Sampling is flat (no per-category distribution).
+- Samples 50 words distributed across vocabulary categories (noun, pronoun, determiner, etc.).
+- Partitioning: `perCat = 50 / numCategories`, remainder goes to the first category.
+- If no categories exist, falls back to flat random sampling of 50 words.
+- Postgres implementation: `UNION ALL` of per-category `(SELECT ... LIMIT $N)` subqueries, with outer `ORDER BY RANDOM()` when multiple categories.
+- In-memory implementation: groups entries by category, shuffles and slices each group, then shuffles the combined result.
 
 ---
 
