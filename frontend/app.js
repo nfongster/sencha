@@ -195,7 +195,7 @@ function renderHome(app) {
     <div class="home-title">Sencha</div>
     <div class="home-buttons">
       <button class="btn btn-large btn-block" onclick="location.hash='#setup'">[1] Start</button>
-      <button class="btn btn-large btn-block" onclick="location.hash='#rules'">[2] Rules</button>
+      <button class="btn btn-large btn-block" onclick="location.hash='#rules'">[2] Journey</button>
       <button class="btn btn-large btn-block" onclick="location.hash='#how-it-works'">[3] How it Works</button>
     </div>`;
 }
