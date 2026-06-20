@@ -193,7 +193,51 @@ function renderHome(app) {
     <div class="home-buttons">
       <button class="btn btn-large btn-block" onclick="location.hash='#setup'">[1] Start</button>
       <button class="btn btn-large btn-block" onclick="location.hash='#rules'">[2] Rules</button>
+      <button class="btn btn-large btn-block" onclick="showHowItWorks()">[3] How it Works</button>
     </div>`;
+}
+
+// ── How it Works ──
+function showHowItWorks() {
+  showModal(`
+    <div class="modal" style="max-width:560px;">
+      <button class="modal-close">&times;</button>
+      <div class="modal-title">How Sencha Works</div>
+      <div class="modal-body" style="text-align:left;font-size:14px;line-height:1.6;">
+        <h3 style="color:#4ade80;margin:0 0 6px;">Phases & Levels</h3>
+        <p style="margin:0 0 16px;color:#d1d5db;">
+          The curriculum is split into <strong>phases</strong> (broad topic groups).
+          Each phase contains numbered <strong>levels</strong>. Every level introduces
+          new grammar rules and vocabulary.
+        </p>
+
+        <h3 style="color:#4ade80;margin:0 0 6px;">Sentence Generation</h3>
+        <p style="margin:0 0 16px;color:#d1d5db;">
+          When you start a session for a level, the LLM generates practice sentences using:
+        </p>
+        <ul style="margin:0 0 16px;padding-left:20px;color:#d1d5db;">
+          <li><strong>Grammar</strong> — only the current level's rules</li>
+          <li><strong>Vocabulary</strong> — all words from the current level + 10 random words from other levels for review</li>
+        </ul>
+
+        <h3 style="color:#4ade80;margin:0 0 6px;">Grading</h3>
+        <p style="margin:0 0 16px;color:#d1d5db;">
+          After revealing a card, rate yourself:<br>
+          <span style="color:#4ade80;">Pass</span> — you knew it &nbsp;|&nbsp;
+          <span style="color:#fbbf24;">Hard</span> — you struggled &nbsp;|&nbsp;
+          <span style="color:#f87171;">Fail</span> — you didn't know it
+        </p>
+
+        <h3 style="color:#4ade80;margin:0 0 6px;">Keyboard Shortcuts</h3>
+        <p style="margin:0;color:#d1d5db;">
+          <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">1</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">2</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">3</code> grade &nbsp;|&nbsp;
+          <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">ENTER</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">SPACE</code> reveal &nbsp;|&nbsp;
+          <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">ESC</code> close &nbsp;|&nbsp;
+          <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">S</code> new session &nbsp;|&nbsp;
+          <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">Q</code> quit
+        </p>
+      </div>
+    </div>`);
 }
 
 // ── View: Session Setup ──
@@ -811,6 +855,7 @@ document.addEventListener('keydown', (e) => {
   if (hash === '#home') {
     if (e.key === '1') location.hash = '#setup';
     if (e.key === '2') location.hash = '#rules';
+    if (e.key === '3') { showHowItWorks(); e.preventDefault(); }
   }
 
   if (hash === '#setup') {
