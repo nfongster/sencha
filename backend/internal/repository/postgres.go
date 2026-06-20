@@ -325,29 +325,34 @@ func (r *PostgresRepository) LoadLevelData(levelNumber int) (*LevelData, error) 
 	}
 
 	target := 50
-	perCat := target / len(categories)
-	remainder := target % len(categories)
-
-	var subQueries []string
-	var args []int32
-	argIdx := 1
-	for i := range categories {
-		n := perCat
-		if i == 0 {
-			n += remainder
-		}
-		subQueries = append(subQueries,
-			fmt.Sprintf(`(SELECT korean, english, category FROM vocabulary WHERE category = $%d ORDER BY RANDOM() LIMIT $%d)`, argIdx, argIdx+1))
-		args = append(args, int32(n))
-		argIdx += 2
-	}
 
 	// If no categories exist (empty DB), fall back to flat random
 	var rows pgx.Rows
-	if len(subQueries) == 0 {
+	if len(categories) == 0 {
 		rows, err = r.pool.Query(r.ctx, `SELECT korean, english, category FROM vocabulary ORDER BY RANDOM() LIMIT 50`)
 	} else {
-		query := strings.Join(subQueries, " UNION ALL ") + " ORDER BY RANDOM()"
+		perCat := target / len(categories)
+		remainder := target % len(categories)
+
+		var subQueries []string
+		var args []int32
+		argIdx := 1
+		for i := range categories {
+			n := perCat
+			if i == 0 {
+				n += remainder
+			}
+			subQueries = append(subQueries,
+				fmt.Sprintf(`(SELECT korean, english, category FROM vocabulary WHERE category = $%d LIMIT $%d)`, argIdx, argIdx+1))
+			args = append(args, int32(n))
+			argIdx += 2
+		}
+
+		query := strings.Join(subQueries, " UNION ALL ")
+		if len(subQueries) > 1 {
+			query += " ORDER BY RANDOM()"
+		}
+
 		// Build args: [cat1, limit1, cat2, limit2, ...]
 		catArgs := make([]interface{}, 0, len(args)*2)
 		for i, cat := range categories {
