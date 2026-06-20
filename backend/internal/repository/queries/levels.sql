@@ -13,6 +13,9 @@ WHERE number = $1;
 INSERT INTO levels (number, phase_number, grammar_md, exceptions_md)
 VALUES ($1, $2, $3, $4);
 
+-- name: UpdateLevel :exec
+UPDATE levels SET grammar_md = $2, exceptions_md = $3 WHERE number = $1;
+
 -- name: MaxLevelNumber :one
 SELECT COALESCE(MAX(number), 0) FROM levels;
 

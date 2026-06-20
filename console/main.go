@@ -12,7 +12,7 @@ func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("🍵 Sencha 🍵")
-	fmt.Println("Available commands: start, quit")
+	fmt.Println("Available commands: start, rules, quit")
 
 	for {
 		fmt.Print("> ")
@@ -27,8 +27,10 @@ func main() {
 			return
 		case "start":
 			runSession(scanner, client)
+		case "rules":
+			runRules(scanner, client)
 		default:
-			fmt.Println("Unknown command. Available: start, quit")
+			fmt.Println("Unknown command. Available: start, rules, quit")
 		}
 	}
 }

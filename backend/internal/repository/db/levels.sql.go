@@ -146,3 +146,18 @@ func (q *Queries) MaxLevelNumber(ctx context.Context) (interface{}, error) {
 	err := row.Scan(&coalesce)
 	return coalesce, err
 }
+
+const updateLevel = `-- name: UpdateLevel :exec
+UPDATE levels SET grammar_md = $2, exceptions_md = $3 WHERE number = $1
+`
+
+type UpdateLevelParams struct {
+	Number       int32
+	GrammarMd    string
+	ExceptionsMd pgtype.Text
+}
+
+func (q *Queries) UpdateLevel(ctx context.Context, arg UpdateLevelParams) error {
+	_, err := q.db.Exec(ctx, updateLevel, arg.Number, arg.GrammarMd, arg.ExceptionsMd)
+	return err
+}
