@@ -61,9 +61,13 @@ func (r *PostgresRepository) MaxPhaseNumber() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	n, ok := v.(int64)
+	n, ok := v.(int32)
 	if !ok {
-		return 0, fmt.Errorf("unexpected type for max phase number: %T", v)
+		n64, ok := v.(int64)
+		if !ok {
+			return 0, fmt.Errorf("unexpected type for max phase number: %T", v)
+		}
+		return int(n64), nil
 	}
 	return int(n), nil
 }
@@ -128,9 +132,13 @@ func (r *PostgresRepository) MaxLevelNumber() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	n, ok := v.(int64)
+	n, ok := v.(int32)
 	if !ok {
-		return 0, fmt.Errorf("unexpected type for max level number: %T", v)
+		n64, ok := v.(int64)
+		if !ok {
+			return 0, fmt.Errorf("unexpected type for max level number: %T", v)
+		}
+		return int(n64), nil
 	}
 	return int(n), nil
 }
