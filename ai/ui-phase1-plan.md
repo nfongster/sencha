@@ -1,6 +1,13 @@
 # UI Phase 1 — Web Frontend SPA
 
-**Branch:** `feat/ui-phase1`
+## Status: ✅ Complete (merged in PR #9)
+
+> **Differences from this plan in the final implementation:**
+> - Home page has 3 buttons (Start, Journey, How it Works) instead of 2 (Start, Rules).
+> - 7 hash-routed views instead of 5: added `#level-select`, `#level-picker`, `#how-it-works`.
+> - Rules page has full CRUD (edit grammar/exceptions/vocabulary, delete phases/levels) rather than read-only browse.
+> - 16 API endpoints consumed instead of the 10 originally listed.
+> - Session expiry 404 handling was not implemented; generic error banner covers all cases.
 
 ## Overview
 
@@ -171,20 +178,6 @@ The frontend consumes these existing endpoints:
 | `GET` | `/api/levels/:number` | Level detail (grammar + vocab) |
 | `POST` | `/api/levels` | Add level |
 | `PATCH` | `/api/levels/:number` | (future use) |
-
-## Execution order
-
-| # | Step | Files |
-|---|------|-------|
-| 1 | Create `feat/ui-phase1` branch from `main` | — |
-| 2 | Add static file serving to `main.go` | `cmd/api/main.go` |
-| 3 | Write `index.html` — shell, CDN scripts, view containers | `frontend/index.html` |
-| 4 | Write `style.css` — black background, card styles, colors, progress graph | `frontend/style.css` |
-| 5 | Write `app.js` — router, API client, each view, progress graph SVG builder | `frontend/app.js` |
-| 6 | Manual test: home → setup → full session → summary | — |
-| 7 | Manual test: rules browse → level detail → add phase → add level | — |
-| 8 | Manual test: error states (invalid session, API down) | — |
-| 9 | Push, PR to `main` | — |
 
 ## Out of scope
 - React or any JS framework

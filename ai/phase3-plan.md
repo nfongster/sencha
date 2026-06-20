@@ -1,6 +1,15 @@
 # Phase 3 — Levels, Phases, and Persistence
 
-## Status: 🚧 In Progress
+## Status: ✅ Complete (merged in PR #7)
+
+> **Note:** Additional endpoints were implemented beyond the original plan:
+> - `PATCH /api/phases/:number` — update phase name
+> - `DELETE /api/phases/:number` — delete phase (cascades)
+> - `GET /api/levels/max` — get highest level number
+> - `DELETE /api/levels/:number` — delete level (cascades, renumbers following levels)
+> - `PUT /api/levels/:number/vocabulary` — replace level vocabulary
+>
+> Items still deferred: user accounts, multi-language "journeys", sentence reuse strategy, grammar accumulation for 100+ levels.
 
 ---
 
