@@ -926,7 +926,7 @@ async function submitDeleteLevel(number) {
 }
 
 // ── Modal: Add Level ──
-async async function showAddLevelModal() {
+async function showAddLevelModal() {
   let phaseOptions = '';
   const { phases } = App.rulesData;
   for (const phase of phases) {
