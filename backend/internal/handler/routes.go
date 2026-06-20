@@ -24,6 +24,7 @@ func RegisterRoutes(r *gin.Engine) {
 	r.DELETE("/api/phases/:number", DeletePhaseHandler)
 
 	r.POST("/api/levels", CreateLevelHandler)
+	r.GET("/api/levels/max", MaxLevelHandler)
 	r.GET("/api/levels/:number", GetLevelHandler)
 	r.PATCH("/api/levels/:number", UpdateLevelRulesHandler)
 	r.PUT("/api/levels/:number/vocabulary", UpdateLevelVocabularyHandler)

@@ -9,6 +9,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func MaxLevelHandler(c *gin.Context) {
+	max, err := appConfig.Repository.MaxLevelNumber()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse{
+			Error: "failed to get max level number",
+			Code:  "LEVEL_NUMBER_ERROR",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"max": max})
+}
+
 func GetLevelHandler(c *gin.Context) {
 	numberStr := c.Param("number")
 	number, err := strconv.Atoi(numberStr)

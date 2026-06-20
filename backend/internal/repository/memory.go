@@ -254,25 +254,21 @@ func (r *memoryRepo) LoadLevelData(levelNumber int) (*LevelData, error) {
 	}
 
 	r.mu.RLock()
-	currentVocab := r.vocabByLevel[levelNumber]
-
 	var pool []VocabEntry
-	for n, entries := range r.vocabByLevel {
-		if n != levelNumber {
-			pool = append(pool, entries...)
-		}
+	for _, entries := range r.vocabByLevel {
+		pool = append(pool, entries...)
 	}
 	r.mu.RUnlock()
 
 	rand.Shuffle(len(pool), func(i, j int) { pool[i], pool[j] = pool[j], pool[i] })
-	n := 10
+	n := 50
 	if len(pool) < n {
 		n = len(pool)
 	}
 
 	return &LevelData{
 		GrammarMD:    l.GrammarMD,
-		Vocab:        append(currentVocab, pool[:n]...),
+		Vocab:        pool[:n],
 		ExceptionsMD: l.ExceptionsMD,
 	}, nil
 }
