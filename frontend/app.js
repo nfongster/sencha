@@ -175,6 +175,7 @@ let selectedDirection = 'korean-to-english';
 function renderSetup(app) {
   selectedDirection = 'korean-to-english';
   app.innerHTML = `
+    <div style="width:100%;text-align:left;margin-bottom:12px;"><button class="btn btn-sm" onclick="location.hash='#home'">← Home</button></div>
     <div class="setup-title">Select Direction</div>
     <div class="setup-options">
       <div class="setup-option selected" data-dir="korean-to-english">
@@ -339,7 +340,7 @@ async function renderRules(app) {
 
 function renderRulesContent(app) {
   const { phases, levelsByPhase } = App.rulesData;
-  let sidebarHtml = '';
+  let sidebarHtml = '<button class="btn btn-sm" onclick="location.hash=\'#home\'" style="margin-bottom:12px;">← Home</button>';
 
   for (const phase of phases) {
     const levels = levelsByPhase[phase.number] || [];
@@ -364,7 +365,6 @@ function renderRulesContent(app) {
         <div class="rules-actions">
           <button class="btn btn-sm" onclick="showAddPhaseModal()">+ Add Phase</button>
           <button class="btn btn-sm" onclick="showAddLevelModal()">+ Add Level</button>
-          <button class="btn btn-sm" onclick="location.hash='#home'" style="margin-left:auto;">← Home</button>
         </div>
       </div>
       <div class="rules-content">
