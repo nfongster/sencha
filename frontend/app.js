@@ -65,6 +65,13 @@ const API = {
   createLevel(data) {
     return this.post('/api/levels', data);
   },
+
+  updateLevel(number, grammarMD, exceptionsMD) {
+    return this.patch('/api/levels/' + number, {
+      grammar_markdown: grammarMD,
+      exceptions_markdown: exceptionsMD,
+    });
+  },
 };
 
 // ── Error Banner ──
@@ -416,9 +423,50 @@ async function showLevelDetail(levelNumber) {
             ${vocabHtml}
           </div>
         </div>
+        <div class="form-actions">
+          <button class="btn btn-sm" onclick="showEditLevelForm(${level.number})">Edit Rules</button>
+        </div>
       </div>`);
   } catch (err) {
     showError('Failed to load level: ' + err.message);
+  }
+}
+
+async function showEditLevelForm(levelNumber) {
+  try {
+    closeModal();
+    const data = await API.getLevel(levelNumber);
+    const level = data.level;
+
+    showModal(`
+      <div class="modal">
+        <button class="modal-close">&times;</button>
+        <div class="modal-title">Edit Level ${level.number} Rules</div>
+        <div class="modal-form">
+          <label>Grammar (Markdown)</label>
+          <textarea id="edit-level-grammar">${escapeHtml(level.grammar_md || '')}</textarea>
+          <label>Exceptions (optional, Markdown)</label>
+          <textarea id="edit-level-exceptions">${escapeHtml(level.exceptions_md || '')}</textarea>
+          <div class="form-actions">
+            <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-sm btn-green" onclick="submitEditLevel(${levelNumber})">Save</button>
+          </div>
+        </div>
+      </div>`);
+  } catch (err) {
+    showError('Failed to load level: ' + err.message);
+  }
+}
+
+async function submitEditLevel(levelNumber) {
+  const grammar = document.getElementById('edit-level-grammar').value.trim();
+  const exceptions = document.getElementById('edit-level-exceptions').value.trim();
+  try {
+    await API.updateLevel(levelNumber, grammar, exceptions);
+    closeModal();
+    showLevelDetail(levelNumber);
+  } catch (err) {
+    showError('Failed to update level: ' + err.message);
   }
 }
 
