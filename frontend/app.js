@@ -364,6 +364,7 @@ function renderRulesContent(app) {
         <div class="rules-actions">
           <button class="btn btn-sm" onclick="showAddPhaseModal()">+ Add Phase</button>
           <button class="btn btn-sm" onclick="showAddLevelModal()">+ Add Level</button>
+          <button class="btn btn-sm" onclick="location.hash='#home'" style="margin-left:auto;">← Home</button>
         </div>
       </div>
       <div class="rules-content">
@@ -536,7 +537,7 @@ async function submitAddLevel() {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { closeModal(); return; }
 
-  const hash = location.hash;
+  const hash = location.hash || '#home';
 
   if (hash === '#home') {
     if (e.key === '1') location.hash = '#setup';
