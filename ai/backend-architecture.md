@@ -30,6 +30,15 @@ Stack: Go (Gin), PostgreSQL (pgx + golang-migrate + sqlc), in-memory fallback.
 |--------|-------|----------|
 | `GET` | `/api/health` | `{"status": "ok"}` |
 
+### Prompt
+
+| Method | Route | Request | Response |
+|--------|-------|---------|----------|
+| `GET` | `/api/prompt` | — | `{"text": string}` |
+| `PUT` | `/api/prompt` | `{"text": string}` | `{"message": "prompt updated"}` |
+
+**`PUT` validation:** text must be non-empty; returns `INVALID_PROMPT` (400) otherwise. Writes to `prompt.tmpl` on disk and calls `sengen.ReloadPrompt()`. Returns `PROMPT_SAVE_ERROR` (500) on write failure.
+
 ### Phases
 
 | Method | Route | Request | Response |
@@ -316,6 +325,8 @@ Generate(count, levelData)
 ```
 
 ### Prompt templates
+
+The generation prompt (`prompt.tmpl`) is loaded from disk at startup via `os.ReadFile`, falling back to an embedded copy if the file is absent. It can be reloaded at runtime via `sengen.ReloadPrompt()` (triggered by `PUT /api/prompt`). The grammar checker prompt (`gramchecker.tmpl`) remains embedded and is not user-editable.
 
 **`prompt.tmpl`** — Generation prompt:
 ```

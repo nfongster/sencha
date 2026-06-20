@@ -17,6 +17,9 @@ func Initialize(cfg *config.Config) {
 func RegisterRoutes(r *gin.Engine) {
 	r.GET("/api/health", HealthHandler)
 
+	r.GET("/api/prompt", GetPromptHandler)
+	r.PUT("/api/prompt", UpdatePromptHandler)
+
 	r.GET("/api/phases", ListPhasesHandler)
 	r.POST("/api/phases", CreatePhaseHandler)
 	r.GET("/api/phases/:number/levels", LevelsInPhaseHandler)
