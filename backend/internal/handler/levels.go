@@ -173,3 +173,25 @@ func UpdateLevelRulesHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "level rules updated"})
 }
+
+func DeleteLevelHandler(c *gin.Context) {
+	numberStr := c.Param("number")
+	number, err := strconv.Atoi(numberStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{
+			Error: "invalid level number",
+			Code:  "INVALID_LEVEL_NUMBER",
+		})
+		return
+	}
+
+	if err := appConfig.Repository.DeleteLevel(number); err != nil {
+		c.JSON(http.StatusNotFound, errorResponse{
+			Error: err.Error(),
+			Code:  "LEVEL_NOT_FOUND",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "level deleted"})
+}

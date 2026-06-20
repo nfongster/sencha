@@ -75,6 +75,71 @@ func CreatePhaseHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "phase created"})
 }
 
+type updatePhaseRequest struct {
+	Name string `json:"name"`
+}
+
+func UpdatePhaseHandler(c *gin.Context) {
+	numberStr := c.Param("number")
+	number, err := strconv.Atoi(numberStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{
+			Error: "invalid phase number",
+			Code:  "INVALID_PHASE_NUMBER",
+		})
+		return
+	}
+
+	var req updatePhaseRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{
+			Error: "invalid request body",
+			Code:  "INVALID_REQUEST",
+		})
+		return
+	}
+
+	if req.Name == "" {
+		c.JSON(http.StatusBadRequest, errorResponse{
+			Error: "phase name is required",
+			Code:  "MISSING_NAME",
+		})
+		return
+	}
+
+	if err := appConfig.Repository.UpdatePhase(number, req.Name); err != nil {
+		c.JSON(http.StatusNotFound, errorResponse{
+			Error: err.Error(),
+			Code:  "PHASE_NOT_FOUND",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "phase updated"})
+}
+
+func DeletePhaseHandler(c *gin.Context) {
+	numberStr := c.Param("number")
+	number, err := strconv.Atoi(numberStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{
+			Error: "invalid phase number",
+			Code:  "INVALID_PHASE_NUMBER",
+		})
+		return
+	}
+
+	if err := appConfig.Repository.DeletePhase(number); err != nil {
+		c.JSON(http.StatusNotFound, errorResponse{
+			Error: err.Error(),
+			Code:  "PHASE_NOT_FOUND",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "phase deleted"})
+}
+
 func LevelsInPhaseHandler(c *gin.Context) {
 	phaseNumberStr := c.Param("number")
 	phaseNumber, err := strconv.Atoi(phaseNumberStr)

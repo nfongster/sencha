@@ -75,6 +75,12 @@ func main() {
 	handler.Initialize(cfg)
 
 	r := gin.Default()
+
+	r.Static("/static", "../frontend")
+	r.GET("/", func(c *gin.Context) {
+		c.File("../frontend/index.html")
+	})
+
 	handler.RegisterRoutes(r)
 	fmt.Println("Starting server on :8080...")
 	if err := r.Run(":8080"); err != nil {

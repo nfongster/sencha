@@ -59,6 +59,52 @@ func (r *memoryRepo) CreatePhase(p Phase) error {
 	return nil
 }
 
+func (r *memoryRepo) UpdatePhase(number int, name string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	p, ok := r.phases[number]
+	if !ok {
+		return fmt.Errorf("phase %d not found", number)
+	}
+	p.Name = name
+	r.phases[number] = p
+	return nil
+}
+
+func (r *memoryRepo) DeletePhase(number int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.phases[number]; !ok {
+		return fmt.Errorf("phase %d not found", number)
+	}
+	for ln, l := range r.levels {
+		if l.PhaseNumber == number {
+			delete(r.levels, ln)
+		}
+	}
+	delete(r.phases, number)
+	return nil
+}
+
+func (r *memoryRepo) DeleteLevel(number int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	l, ok := r.levels[number]
+	if !ok {
+		return fmt.Errorf("level %d not found", number)
+	}
+	phaseNum := l.PhaseNumber
+	delete(r.levels, number)
+	for ln, level := range r.levels {
+		if level.PhaseNumber == phaseNum && ln > number {
+			level.Number = ln - 1
+			delete(r.levels, ln)
+			r.levels[ln-1] = level
+		}
+	}
+	return nil
+}
+
 func (r *memoryRepo) MaxPhaseNumber() (int, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

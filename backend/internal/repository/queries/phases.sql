@@ -9,3 +9,6 @@ INSERT INTO phases (number, name) VALUES ($1, $2);
 
 -- name: MaxPhaseNumber :one
 SELECT COALESCE(MAX(number), 0) FROM phases;
+
+-- name: UpdatePhase :exec
+UPDATE phases SET name = $2 WHERE number = $1;
