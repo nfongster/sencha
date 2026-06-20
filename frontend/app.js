@@ -104,6 +104,63 @@ const API = {
   },
 };
 
+// ── Session Persistence ──
+const STORAGE_KEY = 'sencha-session';
+
+function saveSessionState() {
+  try {
+    const state = {
+      sessionId: App.sessionId,
+      direction: App.direction,
+      totalCards: App.totalCards,
+      cardsRemaining: App.cardsRemaining,
+      currentIndex: App.currentIndex,
+      cardStates: App.cardStates,
+      gradeCounts: App.gradeCounts,
+      sessionComplete: App.sessionComplete,
+      currentCard: App.currentCard,
+      backRevealed: App.backRevealed,
+      selectedLevel: App.selectedLevel,
+    };
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (_) { /* quota exceeded, ignore */ }
+}
+
+function restoreSessionState() {
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+    const state = JSON.parse(saved);
+    Object.assign(App, state);
+  } catch (_) { /* corrupt data, ignore */ }
+}
+
+function clearSession() {
+  App.sessionId = null;
+  App.direction = null;
+  App.totalCards = 0;
+  App.cardsRemaining = 0;
+  App.currentIndex = 0;
+  App.cardStates = [];
+  App.gradeCounts = { pass: 0, hard: 0, fail: 0 };
+  App.sessionComplete = false;
+  App.currentCard = null;
+  App.backRevealed = false;
+  sessionStorage.removeItem(STORAGE_KEY);
+}
+
+async function verifyAndRender() {
+  if (!App.sessionId) return;
+  try {
+    await API.get('/api/sessions/' + App.sessionId);
+  } catch (err) {
+    clearSession();
+    location.hash = '#home?expired=1';
+    return;
+  }
+  router();
+}
+
 // ── Error Banner ──
 let errorTimeout = null;
 
@@ -118,13 +175,15 @@ function showError(msg) {
 
 // ── Router ──
 function router() {
-  const hash = location.hash || '#home';
+  const raw = location.hash || '#home';
+  const hash = raw.split('?')[0];
+  const params = new URLSearchParams(raw.split('?')[1] || '');
   const app = document.getElementById('app');
   if (!app) return;
 
   switch (hash) {
     case '#home':
-      renderHome(app);
+      renderHome(app, params.get('expired') === '1');
       break;
     case '#level-select':
       renderLevelSelect(app);
@@ -152,8 +211,15 @@ function router() {
   }
 }
 
-window.addEventListener('hashchange', router);
-window.addEventListener('load', router);
+window.addEventListener('hashchange', () => {
+  if (location.hash.startsWith('#home')) {
+    router();
+  }
+});
+window.addEventListener('load', () => {
+  restoreSessionState();
+  verifyAndRender();
+});
 
 // ── Modal ──
 function showModal(html) {
@@ -207,8 +273,12 @@ function buildProgressGraph(cardStates, currentIndex) {
 }
 
 // ── View: Home ──
-function renderHome(app) {
+function renderHome(app, expired) {
+  const banner = expired
+    ? '<div class="persistent-banner">Session expired. The server was restarted — please start a new session.</div>'
+    : '';
   app.innerHTML = `
+    ${banner}
     <div class="home-title">Sencha</div>
     <div class="home-buttons">
       <button class="btn btn-large btn-block" onclick="location.hash='#level-select'">[1] Start</button>
@@ -430,6 +500,7 @@ async function startSession() {
     App.currentCard = null;
     App.backRevealed = false;
     App.cardStates = new Array(data.total_cards).fill('#4b5563');
+    saveSessionState();
     await revealCard();
     location.hash = '#session';
   } catch (err) {
@@ -500,15 +571,22 @@ async function revealCard() {
     App.currentCard = data;
     App.backRevealed = false;
     App.cardStates[App.currentIndex] = '#6b7280';
+    saveSessionState();
     const app = document.getElementById('app');
     if (app) renderSession(app);
   } catch (err) {
+    if (err.message.includes('NOT_FOUND')) {
+      clearSession();
+      location.hash = '#home?expired=1';
+      return;
+    }
     showError('Failed to reveal card: ' + err.message);
   }
 }
 
 function backReveal() {
   App.backRevealed = true;
+  saveSessionState();
   const app = document.getElementById('app');
   if (app) renderSession(app);
 }
@@ -523,14 +601,21 @@ async function gradeCard(grade) {
     App.cardStates[App.currentIndex] = color;
 
     if (data.session_complete) {
+      clearSession();
       location.hash = '#summary';
     } else {
       App.currentIndex++;
       App.currentCard = null;
       App.backRevealed = false;
+      saveSessionState();
       await revealCard();
     }
   } catch (err) {
+    if (err.message.includes('NOT_FOUND')) {
+      clearSession();
+      location.hash = '#home?expired=1';
+      return;
+    }
     showError('Failed to grade card: ' + err.message);
   }
 }
@@ -552,8 +637,8 @@ function renderSummary(app) {
     </div>
     <div class="summary-percent">${percent}%</div>
     <div class="summary-buttons">
-      <button class="btn btn-green btn-large" onclick="location.hash='#setup'">[S] Start New</button>
-      <button class="btn btn-large" onclick="location.hash='#home'">[Q] Quit</button>
+      <button class="btn btn-green btn-large" onclick="clearSession();location.hash='#setup'">[S] Start New</button>
+      <button class="btn btn-large" onclick="clearSession();location.hash='#home'">[Q] Quit</button>
     </div>`;
 }
 
