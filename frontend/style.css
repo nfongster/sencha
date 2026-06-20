@@ -535,6 +535,18 @@ body {
 }
 .grammar-content em { color: #9ca3af; }
 
+/* ── Persistent banner (session expired) ── */
+.persistent-banner {
+  background: #78350f;
+  color: #fde68a;
+  text-align: center;
+  padding: 12px 20px;
+  font-size: 14px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  width: 100%;
+}
+
 /* ── Loading ── */
 .loading {
   color: #9ca3af;
