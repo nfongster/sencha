@@ -102,6 +102,14 @@ const API = {
   categories() {
     return this.get('/api/levels/categories');
   },
+
+  getPrompt() {
+    return this.get('/api/prompt');
+  },
+
+  updatePrompt(text) {
+    return this.put('/api/prompt', { text });
+  },
 };
 
 // ── Session Persistence ──
@@ -454,7 +462,45 @@ function renderHowItWorks(app) {
         <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">Q</code> quit
       </p>
 
+      <h2 style="color:#4ade80;font-size:18px;margin:0 0 8px;">Edit Generator Prompt</h2>
+      <p style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 24px;">
+        <button class="btn btn-sm" onclick="openPromptEditor()">Open Prompt Editor</button>
+      </p>
+
     </div>`;
+}
+
+// ── Prompt Editor ──
+async function openPromptEditor() {
+  try {
+    const data = await API.getPrompt();
+    showModal(`
+      <div class="modal">
+        <button class="modal-close">&times;</button>
+        <div class="modal-title">Edit Generator Prompt</div>
+        <div class="modal-form">
+          <label>Prompt Template</label>
+          <textarea id="prompt-editor-textarea" class="prompt-editor">${escapeHtml(data.text)}</textarea>
+          <div class="form-actions">
+            <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-sm btn-green" onclick="submitPromptEditor()">Save</button>
+          </div>
+        </div>
+      </div>`);
+  } catch (err) {
+    showError('Failed to load prompt: ' + err.message);
+  }
+}
+
+async function submitPromptEditor() {
+  const text = document.getElementById('prompt-editor-textarea').value;
+  if (!text.trim()) { showError('Prompt text is required'); return; }
+  try {
+    await API.updatePrompt(text);
+    closeModal();
+  } catch (err) {
+    showError('Failed to update prompt: ' + err.message);
+  }
 }
 
 // ── View: Session Setup ──

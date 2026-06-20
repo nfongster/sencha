@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -19,10 +20,12 @@ import (
 )
 
 //go:embed prompt.tmpl
-var promptTmplSrc string
+var embeddedPromptTmpl string
 
 //go:embed gramchecker.tmpl
 var gramCheckTmplSrc string
+
+var promptTmplSrc string
 
 type promptData struct {
 	Count   int
@@ -55,6 +58,10 @@ type chatResponse struct {
 var globalConfig *config.LLMConfig
 var httpClient = &http.Client{Timeout: 60 * time.Second}
 
+func init() {
+	loadPrompt()
+}
+
 // testGenerateFunc, when set, replaces the real generation logic for tests.
 // This allows handler tests to avoid depending on an actual LLM.
 type GenerateFunc func(int, repository.LevelData) ([]session.SentencePair, error)
@@ -65,9 +72,32 @@ func SetGenerateFunc(fn GenerateFunc) {
 	testGenerateFunc = fn
 }
 
+func loadPrompt() {
+	data, err := os.ReadFile("prompt.tmpl")
+	if err != nil {
+		promptTmplSrc = embeddedPromptTmpl
+		return
+	}
+	promptTmplSrc = string(data)
+}
+
+func ReloadPrompt() error {
+	data, err := os.ReadFile("prompt.tmpl")
+	if err != nil {
+		return fmt.Errorf("reading prompt template on disk: %w", err)
+	}
+	promptTmplSrc = string(data)
+	return nil
+}
+
+func GetPrompt() string {
+	return promptTmplSrc
+}
+
 func Init(cfg *config.LLMConfig) {
 	log.Printf("[sengen] Init called — base_url=%q model=%q api_key=%q", cfg.BaseURL, cfg.Model, cfg.APIKey)
 	globalConfig = cfg
+	loadPrompt()
 }
 
 func Generate(count int, data repository.LevelData) ([]session.SentencePair, error) {
