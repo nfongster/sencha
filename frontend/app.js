@@ -264,7 +264,10 @@ function renderSession(app) {
 }
 
 function renderCardFront(card) {
-  return `<div class="card-front">${escapeHtml(card.front)}</div>`;
+  return `
+    <div class="card-front">${escapeHtml(card.front)}</div>
+    <div class="card-divider"></div>
+    <div class="card-back" style="visibility:hidden">${escapeHtml(card.back)}</div>`;
 }
 
 function renderCardContent(reveal) {
