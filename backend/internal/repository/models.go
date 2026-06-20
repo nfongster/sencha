@@ -1,8 +1,8 @@
 package repository
 
 type Phase struct {
-	Number int
-	Name   string
+	Number int    `json:"number"`
+	Name   string `json:"name"`
 }
 
 type Level struct {
