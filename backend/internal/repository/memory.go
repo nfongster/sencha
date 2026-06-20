@@ -177,7 +177,7 @@ func (r *memoryRepo) CreateLevel(l Level) error {
 	return nil
 }
 
-func (r *memoryRepo) UpdateLevel(number int, grammarMD, exceptionsMD string) error {
+func (r *memoryRepo) UpdateLevel(number int, grammarMD string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	l, ok := r.levels[number]
@@ -185,7 +185,6 @@ func (r *memoryRepo) UpdateLevel(number int, grammarMD, exceptionsMD string) err
 		return fmt.Errorf("level %d not found", number)
 	}
 	l.GrammarMD = grammarMD
-	l.ExceptionsMD = exceptionsMD
 	r.levels[number] = l
 	return nil
 }
@@ -332,8 +331,7 @@ func (r *memoryRepo) LoadLevelData(levelNumber int) (*LevelData, error) {
 	rand.Shuffle(len(selected), func(i, j int) { selected[i], selected[j] = selected[j], selected[i] })
 
 	return &LevelData{
-		GrammarMD:    l.GrammarMD,
-		Vocab:        selected,
-		ExceptionsMD: l.ExceptionsMD,
+		GrammarMD: l.GrammarMD,
+		Vocab:     selected,
 	}, nil
 }

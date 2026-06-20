@@ -75,7 +75,6 @@ type createLevelVocabularyItem struct {
 type createLevelRequest struct {
 	PhaseNumber int                         `json:"phase_number"`
 	GrammarMD   string                      `json:"grammar_markdown"`
-	Exceptions  string                      `json:"exceptions_markdown"`
 	Vocabulary  []createLevelVocabularyItem `json:"vocabulary"`
 }
 
@@ -118,10 +117,9 @@ func CreateLevelHandler(c *gin.Context) {
 	}
 
 	if err := appConfig.Repository.CreateLevel(repository.Level{
-		Number:       nextLevel,
-		PhaseNumber:  req.PhaseNumber,
-		GrammarMD:    req.GrammarMD,
-		ExceptionsMD: req.Exceptions,
+		Number:      nextLevel,
+		PhaseNumber: req.PhaseNumber,
+		GrammarMD:   req.GrammarMD,
 	}); err != nil {
 		c.JSON(http.StatusConflict, errorResponse{
 			Error: err.Error(),
@@ -147,8 +145,7 @@ func CreateLevelHandler(c *gin.Context) {
 }
 
 type updateLevelRulesRequest struct {
-	GrammarMD  string `json:"grammar_markdown"`
-	Exceptions string `json:"exceptions_markdown"`
+	GrammarMD string `json:"grammar_markdown"`
 }
 
 func UpdateLevelRulesHandler(c *gin.Context) {
@@ -171,10 +168,10 @@ func UpdateLevelRulesHandler(c *gin.Context) {
 		return
 	}
 
-	if req.GrammarMD == "" && req.Exceptions == "" {
+	if req.GrammarMD == "" {
 		c.JSON(http.StatusBadRequest, errorResponse{
-			Error: "at least one of grammar_markdown or exceptions_markdown must be provided",
-			Code:  "MISSING_FIELDS",
+			Error: "grammar_markdown is required",
+			Code:  "MISSING_GRAMMAR",
 		})
 		return
 	}
@@ -187,7 +184,7 @@ func UpdateLevelRulesHandler(c *gin.Context) {
 		return
 	}
 
-	if err := appConfig.Repository.UpdateLevel(number, req.GrammarMD, req.Exceptions); err != nil {
+	if err := appConfig.Repository.UpdateLevel(number, req.GrammarMD); err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse{
 			Error: err.Error(),
 			Code:  "LEVEL_UPDATE_ERROR",

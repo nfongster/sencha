@@ -79,7 +79,6 @@ func Seed(r Repository) error {
 		Number:      1,
 		PhaseNumber: 1,
 		GrammarMD:   defaultGrammarMD,
-		ExceptionsMD: "",
 	}); err != nil {
 		return err
 	}

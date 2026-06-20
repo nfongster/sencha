@@ -8,7 +8,6 @@ import (
 	"sencha/backend/internal/repository/db"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -137,10 +136,9 @@ func (r *PostgresRepository) LevelsInPhase(phaseNumber int) ([]Level, error) {
 	levels := make([]Level, len(rows))
 	for i, row := range rows {
 		levels[i] = Level{
-			Number:       int(row.Number),
-			PhaseNumber:  int(row.PhaseNumber),
-			GrammarMD:    row.GrammarMd,
-			ExceptionsMD: row.ExceptionsMd,
+			Number:      int(row.Number),
+			PhaseNumber: int(row.PhaseNumber),
+			GrammarMD:   row.GrammarMd,
 		}
 	}
 	return levels, nil
@@ -152,35 +150,24 @@ func (r *PostgresRepository) Level(number int) (*Level, error) {
 		return nil, err
 	}
 	return &Level{
-		Number:       int(row.Number),
-		PhaseNumber:  int(row.PhaseNumber),
-		GrammarMD:    row.GrammarMd,
-		ExceptionsMD: row.ExceptionsMd,
+		Number:      int(row.Number),
+		PhaseNumber: int(row.PhaseNumber),
+		GrammarMD:   row.GrammarMd,
 	}, nil
 }
 
 func (r *PostgresRepository) CreateLevel(l Level) error {
-	var exceptions pgtype.Text
-	if l.ExceptionsMD != "" {
-		exceptions = pgtype.Text{String: l.ExceptionsMD, Valid: true}
-	}
 	return r.queries.CreateLevel(r.ctx, db.CreateLevelParams{
-		Number:       int32(l.Number),
-		PhaseNumber:  int32(l.PhaseNumber),
-		GrammarMd:    l.GrammarMD,
-		ExceptionsMd: exceptions,
+		Number:      int32(l.Number),
+		PhaseNumber: int32(l.PhaseNumber),
+		GrammarMd:   l.GrammarMD,
 	})
 }
 
-func (r *PostgresRepository) UpdateLevel(number int, grammarMD, exceptionsMD string) error {
-	var exceptions pgtype.Text
-	if exceptionsMD != "" {
-		exceptions = pgtype.Text{String: exceptionsMD, Valid: true}
-	}
+func (r *PostgresRepository) UpdateLevel(number int, grammarMD string) error {
 	return r.queries.UpdateLevel(r.ctx, db.UpdateLevelParams{
-		Number:       int32(number),
-		GrammarMd:    grammarMD,
-		ExceptionsMd: exceptions,
+		Number:    int32(number),
+		GrammarMd: grammarMD,
 	})
 }
 
@@ -208,10 +195,9 @@ func (r *PostgresRepository) LevelsUpTo(number int) ([]Level, error) {
 	levels := make([]Level, len(rows))
 	for i, row := range rows {
 		levels[i] = Level{
-			Number:       int(row.Number),
-			PhaseNumber:  int(row.PhaseNumber),
-			GrammarMD:    row.GrammarMd,
-			ExceptionsMD: row.ExceptionsMd,
+			Number:      int(row.Number),
+			PhaseNumber: int(row.PhaseNumber),
+			GrammarMD:   row.GrammarMd,
 		}
 	}
 	return levels, nil
@@ -378,8 +364,7 @@ func (r *PostgresRepository) LoadLevelData(levelNumber int) (*LevelData, error) 
 	}
 
 	return &LevelData{
-		GrammarMD:    l.GrammarMD,
-		Vocab:        vocab,
-		ExceptionsMD: l.ExceptionsMD,
+		GrammarMD: l.GrammarMD,
+		Vocab:     vocab,
 	}, nil
 }

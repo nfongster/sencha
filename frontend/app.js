@@ -89,10 +89,9 @@ const API = {
     return this.post('/api/levels', data);
   },
 
-  updateLevel(number, grammarMD, exceptionsMD) {
+  updateLevel(number, grammarMD) {
     return this.patch('/api/levels/' + number, {
       grammar_markdown: grammarMD,
-      exceptions_markdown: exceptionsMD,
     });
   },
 
@@ -302,9 +301,6 @@ async function showLevelDetailForPicker(levelNumber) {
     const vocab = data.vocabulary || [];
 
     let grammarHtml = level.grammar_md ? marked.parse(level.grammar_md) : '<em>No grammar</em>';
-    if (level.exceptions_md) {
-      grammarHtml += '<h3>Exceptions</h3>' + marked.parse(level.exceptions_md);
-    }
 
     let vocabHtml = '';
     if (vocab.length === 0) {
@@ -633,9 +629,6 @@ async function showLevelDetail(levelNumber) {
     const vocab = data.vocabulary || [];
 
     let grammarHtml = level.grammar_md ? marked.parse(level.grammar_md) : '<em>No grammar</em>';
-    if (level.exceptions_md) {
-      grammarHtml += '<h3>Exceptions</h3>' + marked.parse(level.exceptions_md);
-    }
 
     let vocabHtml = '';
     if (vocab.length === 0) {
@@ -686,8 +679,6 @@ async function showEditLevelForm(levelNumber) {
         <div class="modal-form">
           <label>Grammar (Markdown)</label>
           <textarea id="edit-level-grammar">${escapeHtml(level.grammar_md || '')}</textarea>
-          <label>Exceptions (optional, Markdown)</label>
-          <textarea id="edit-level-exceptions">${escapeHtml(level.exceptions_md || '')}</textarea>
           <div class="form-actions">
             <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
             <button class="btn btn-sm btn-green" onclick="submitEditLevel(${levelNumber})">Save</button>
@@ -701,9 +692,8 @@ async function showEditLevelForm(levelNumber) {
 
 async function submitEditLevel(levelNumber) {
   const grammar = document.getElementById('edit-level-grammar').value.trim();
-  const exceptions = document.getElementById('edit-level-exceptions').value.trim();
   try {
-    await API.updateLevel(levelNumber, grammar, exceptions);
+    await API.updateLevel(levelNumber, grammar);
     closeModal();
     showLevelDetail(levelNumber);
   } catch (err) {
@@ -944,8 +934,6 @@ async function showAddLevelModal() {
         <select id="add-level-phase">${phaseOptions}</select>
         <label>Grammar Rules (Markdown)</label>
         <textarea id="add-level-grammar" placeholder="Enter grammar rules in markdown..."></textarea>
-        <label>Exceptions (optional, Markdown)</label>
-        <textarea id="add-level-exceptions" placeholder="Enter exceptions in markdown..."></textarea>
         <label>Vocabulary</label>
         <div id="vocab-rows">
           <div class="vocab-row">
@@ -979,7 +967,6 @@ function addVocabRow() {
 async function submitAddLevel() {
   const phaseNumber = parseInt(document.getElementById('add-level-phase').value);
   const grammar = document.getElementById('add-level-grammar').value.trim();
-  const exceptions = document.getElementById('add-level-exceptions').value.trim();
 
   if (!grammar) { showError('Grammar rules are required'); return; }
 
@@ -998,7 +985,6 @@ async function submitAddLevel() {
     await API.createLevel({
       phase_number: phaseNumber,
       grammar_markdown: grammar,
-      exceptions_markdown: exceptions || '',
       vocabulary,
     });
     closeModal();

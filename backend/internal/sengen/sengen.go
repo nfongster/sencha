@@ -31,8 +31,7 @@ type promptData struct {
 }
 
 type gramCheckData struct {
-	Pairs      string
-	Exceptions string
+	Pairs string
 }
 
 type chatMessage struct {
@@ -105,7 +104,7 @@ func Generate(count int, data repository.LevelData) ([]session.SentencePair, err
 		return nil, fmt.Errorf("LLM returned no sentences")
 	}
 
-	checked, gramLatency, err := grammarCheck(pairs, data.ExceptionsMD)
+	checked, gramLatency, err := grammarCheck(pairs)
 	if err != nil {
 		log.Printf("[sengen] Grammar check failed: %v", err)
 		return nil, fmt.Errorf("grammar check failed: %w", err)
@@ -140,7 +139,7 @@ func buildPrompt(count int, data repository.LevelData) (string, error) {
 	return buf.String(), nil
 }
 
-func buildGrammarCheckPrompt(pairs []session.SentencePair, exceptions string) (string, error) {
+func buildGrammarCheckPrompt(pairs []session.SentencePair) (string, error) {
 	tmpl, err := template.New("gramcheck").Parse(gramCheckTmplSrc)
 	if err != nil {
 		return "", fmt.Errorf("parsing grammar check template: %w", err)
@@ -153,8 +152,7 @@ func buildGrammarCheckPrompt(pairs []session.SentencePair, exceptions string) (s
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, gramCheckData{
-		Pairs:      strings.Join(lines, "\n"),
-		Exceptions: exceptions,
+		Pairs: strings.Join(lines, "\n"),
 	})
 	if err != nil {
 		return "", fmt.Errorf("executing grammar check template: %w", err)
@@ -163,8 +161,8 @@ func buildGrammarCheckPrompt(pairs []session.SentencePair, exceptions string) (s
 	return buf.String(), nil
 }
 
-func grammarCheck(pairs []session.SentencePair, exceptions string) ([]session.SentencePair, time.Duration, error) {
-	prompt, err := buildGrammarCheckPrompt(pairs, exceptions)
+func grammarCheck(pairs []session.SentencePair) ([]session.SentencePair, time.Duration, error) {
+	prompt, err := buildGrammarCheckPrompt(pairs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("building grammar check prompt: %w", err)
 	}
