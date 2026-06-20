@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"sencha/backend/internal/repository/db"
 
@@ -294,23 +293,9 @@ func (r *PostgresRepository) SaveSentences(sentences []Sentence) error {
 }
 
 func (r *PostgresRepository) LoadLevelData(levelNumber int) (*LevelData, error) {
-	levels, err := r.LevelsUpTo(levelNumber)
+	l, err := r.Level(levelNumber)
 	if err != nil {
-		return nil, fmt.Errorf("loading levels up to %d: %w", levelNumber, err)
-	}
-	if len(levels) == 0 {
-		return nil, fmt.Errorf("no levels found up to %d", levelNumber)
-	}
-
-	var grammarParts []string
-	var exceptionsMD string
-	for _, l := range levels {
-		if l.GrammarMD != "" {
-			grammarParts = append(grammarParts, l.GrammarMD)
-		}
-		if l.ExceptionsMD != "" && l.Number == levelNumber {
-			exceptionsMD = l.ExceptionsMD
-		}
+		return nil, fmt.Errorf("level %d not found: %w", levelNumber, err)
 	}
 
 	vocab, err := r.VocabularyUpTo(levelNumber)
@@ -319,8 +304,8 @@ func (r *PostgresRepository) LoadLevelData(levelNumber int) (*LevelData, error) 
 	}
 
 	return &LevelData{
-		GrammarMD:    strings.Join(grammarParts, "\n\n"),
+		GrammarMD:    l.GrammarMD,
 		Vocab:        vocab,
-		ExceptionsMD: exceptionsMD,
+		ExceptionsMD: l.ExceptionsMD,
 	}, nil
 }

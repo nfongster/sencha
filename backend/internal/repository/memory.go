@@ -3,7 +3,6 @@ package repository
 import (
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 )
 
@@ -248,19 +247,9 @@ func (r *memoryRepo) SaveSentences(sentences []Sentence) error {
 }
 
 func (r *memoryRepo) LoadLevelData(levelNumber int) (*LevelData, error) {
-	levels, err := r.LevelsUpTo(levelNumber)
+	l, err := r.Level(levelNumber)
 	if err != nil {
 		return nil, err
-	}
-	var grammarParts []string
-	var exceptions string
-	for _, l := range levels {
-		if l.GrammarMD != "" {
-			grammarParts = append(grammarParts, l.GrammarMD)
-		}
-		if l.Number == levelNumber && l.ExceptionsMD != "" {
-			exceptions = l.ExceptionsMD
-		}
 	}
 
 	vocab, err := r.VocabularyUpTo(levelNumber)
@@ -269,8 +258,8 @@ func (r *memoryRepo) LoadLevelData(levelNumber int) (*LevelData, error) {
 	}
 
 	return &LevelData{
-		GrammarMD:    strings.Join(grammarParts, "\n\n"),
+		GrammarMD:    l.GrammarMD,
 		Vocab:        vocab,
-		ExceptionsMD: exceptions,
+		ExceptionsMD: l.ExceptionsMD,
 	}, nil
 }
