@@ -33,4 +33,5 @@ type Vocabulary struct {
 	LevelNumber int32
 	Korean      string
 	English     string
+	Category    string
 }

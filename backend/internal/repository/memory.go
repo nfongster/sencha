@@ -13,6 +13,7 @@ type memoryRepo struct {
 	levels       map[int]Level
 	vocab        []VocabEntry // cumulative, for VocabularyUpTo
 	vocabByLevel map[int][]VocabEntry
+	categories   map[string]bool
 	sentences    []Sentence
 	nextLevel    int
 }
@@ -23,6 +24,7 @@ func NewMemory() Repository {
 		levels:       make(map[int]Level),
 		vocab:        nil,
 		vocabByLevel: make(map[int][]VocabEntry),
+		categories:   make(map[string]bool),
 		sentences:    nil,
 		nextLevel:    1,
 	}
@@ -223,6 +225,7 @@ func (r *memoryRepo) SetVocabulary(levelNumber int, entries []VocabEntry) error 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.vocabByLevel[levelNumber] = entries
+	r.rebuildCategories()
 	return nil
 }
 
@@ -237,7 +240,38 @@ func (r *memoryRepo) AddVocabulary(levelNumber int, entries []VocabEntry) error 
 	defer r.mu.Unlock()
 	r.vocab = append(r.vocab, entries...)
 	r.vocabByLevel[levelNumber] = append(r.vocabByLevel[levelNumber], entries...)
+	for _, e := range entries {
+		cat := e.Category
+		if cat == "" {
+			cat = "uncategorized"
+		}
+		r.categories[cat] = true
+	}
 	return nil
+}
+
+func (r *memoryRepo) Categories() ([]string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var out []string
+	for cat := range r.categories {
+		out = append(out, cat)
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+func (r *memoryRepo) rebuildCategories() {
+	r.categories = make(map[string]bool)
+	for _, entries := range r.vocabByLevel {
+		for _, e := range entries {
+			cat := e.Category
+			if cat == "" {
+				cat = "uncategorized"
+			}
+			r.categories[cat] = true
+		}
+	}
 }
 
 func (r *memoryRepo) SaveSentences(sentences []Sentence) error {
@@ -253,22 +287,53 @@ func (r *memoryRepo) LoadLevelData(levelNumber int) (*LevelData, error) {
 		return nil, err
 	}
 
+	categories, err := r.Categories()
+	if err != nil {
+		return nil, err
+	}
+
 	r.mu.RLock()
-	var pool []VocabEntry
+	byCategory := make(map[string][]VocabEntry)
 	for _, entries := range r.vocabByLevel {
-		pool = append(pool, entries...)
+		for _, v := range entries {
+			cat := v.Category
+			if cat == "" {
+				cat = "uncategorized"
+			}
+			byCategory[cat] = append(byCategory[cat], v)
+		}
 	}
 	r.mu.RUnlock()
 
-	rand.Shuffle(len(pool), func(i, j int) { pool[i], pool[j] = pool[j], pool[i] })
-	n := 50
-	if len(pool) < n {
-		n = len(pool)
+	// Use all categories sorted, or "uncategorized" if none exist
+	catNames := categories
+	if len(catNames) == 0 {
+		catNames = []string{"uncategorized"}
 	}
+
+	target := 50
+	perCat := target / len(catNames)
+	remainder := target % len(catNames)
+
+	var selected []VocabEntry
+	for i, cat := range catNames {
+		pool := byCategory[cat]
+		rand.Shuffle(len(pool), func(i, j int) { pool[i], pool[j] = pool[j], pool[i] })
+		n := perCat
+		if i == 0 {
+			n += remainder
+		}
+		if len(pool) < n {
+			n = len(pool)
+		}
+		selected = append(selected, pool[:n]...)
+	}
+
+	rand.Shuffle(len(selected), func(i, j int) { selected[i], selected[j] = selected[j], selected[i] })
 
 	return &LevelData{
 		GrammarMD:    l.GrammarMD,
-		Vocab:        pool[:n],
+		Vocab:        selected,
 		ExceptionsMD: l.ExceptionsMD,
 	}, nil
 }

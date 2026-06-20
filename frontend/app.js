@@ -12,6 +12,7 @@ const App = {
   backRevealed: false,
   rulesData: null,
   selectedLevel: null,
+  categoriesCache: null,
 };
 
 // ── API Client ──
@@ -97,6 +98,10 @@ const API = {
 
   setVocabulary(number, entries) {
     return this.put('/api/levels/' + number + '/vocabulary', { vocabulary: entries });
+  },
+
+  categories() {
+    return this.get('/api/levels/categories');
   },
 };
 
@@ -305,11 +310,11 @@ async function showLevelDetailForPicker(levelNumber) {
     if (vocab.length === 0) {
       vocabHtml = '<em style="color:#6b7280;">No vocabulary for this level</em>';
     } else {
-      vocabHtml = '<ul class="vocab-list">';
+      vocabHtml = '<table class="vocab-table"><thead><tr><th>Korean</th><th>English</th><th>Category</th></tr></thead><tbody>';
       for (const v of vocab) {
-        vocabHtml += `<li><span class="korean">${escapeHtml(v.korean)}</span><span class="english">${escapeHtml(v.english)}</span></li>`;
+        vocabHtml += `<tr><td class="korean">${escapeHtml(v.korean)}</td><td class="english">${escapeHtml(v.english)}</td><td class="category">${escapeHtml(v.category) || ''}</td></tr>`;
       }
-      vocabHtml += '</ul>';
+      vocabHtml += '</tbody></table>';
     }
 
     showModal(`
@@ -636,11 +641,11 @@ async function showLevelDetail(levelNumber) {
     if (vocab.length === 0) {
       vocabHtml = '<em style="color:#6b7280;">No vocabulary for this level</em>';
     } else {
-      vocabHtml = '<ul class="vocab-list">';
+      vocabHtml = '<table class="vocab-table"><thead><tr><th>Korean</th><th>English</th><th>Category</th></tr></thead><tbody>';
       for (const v of vocab) {
-        vocabHtml += `<li><span class="korean">${escapeHtml(v.korean)}</span><span class="english">${escapeHtml(v.english)}</span></li>`;
+        vocabHtml += `<tr><td class="korean">${escapeHtml(v.korean)}</td><td class="english">${escapeHtml(v.english)}</td><td class="category">${escapeHtml(v.category) || ''}</td></tr>`;
       }
-      vocabHtml += '</ul>';
+      vocabHtml += '</tbody></table>';
     }
 
     showModal(`
@@ -778,12 +783,15 @@ async function showEditVocabForm(levelNumber) {
     const data = await API.getLevel(levelNumber);
     const vocab = data.level_vocabulary || [];
 
-    let rowsHtml = '';
+    await ensureCategories();
+
+      let rowsHtml = '';
     if (vocab.length === 0) {
       rowsHtml = `
         <div class="vocab-row">
           <input type="text" class="vocab-korean" placeholder="Korean">
           <input type="text" class="vocab-english" placeholder="English">
+          <select class="vocab-category">${categoryOptionsHtml()}</select>
           <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>
         </div>`;
     } else {
@@ -792,6 +800,7 @@ async function showEditVocabForm(levelNumber) {
           <div class="vocab-row">
             <input type="text" class="vocab-korean" value="${escapeHtml(v.korean)}">
             <input type="text" class="vocab-english" value="${escapeHtml(v.english)}">
+            <select class="vocab-category">${categoryOptionsHtml(v.category)}</select>
             <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>
           </div>`;
       }
@@ -822,6 +831,7 @@ function addEditVocabRow() {
   row.innerHTML = `
     <input type="text" class="vocab-korean" placeholder="Korean">
     <input type="text" class="vocab-english" placeholder="English">
+    <select class="vocab-category">${categoryOptionsHtml()}</select>
     <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>`;
   container.appendChild(row);
 }
@@ -832,8 +842,9 @@ async function submitEditVocab(levelNumber) {
   for (const row of rows) {
     const korean = row.querySelector('.vocab-korean').value.trim();
     const english = row.querySelector('.vocab-english').value.trim();
+    const category = row.querySelector('.vocab-category').value;
     if (korean && english) {
-      vocabulary.push({ korean, english });
+      vocabulary.push({ korean, english, category });
     }
   }
   try {
@@ -915,12 +926,14 @@ async function submitDeleteLevel(number) {
 }
 
 // ── Modal: Add Level ──
-async function showAddLevelModal() {
+async async function showAddLevelModal() {
   let phaseOptions = '';
   const { phases } = App.rulesData;
   for (const phase of phases) {
     phaseOptions += `<option value="${phase.number}">${escapeHtml(phase.name)}</option>`;
   }
+
+  await ensureCategories();
 
   showModal(`
     <div class="modal">
@@ -938,6 +951,7 @@ async function showAddLevelModal() {
           <div class="vocab-row">
             <input type="text" class="vocab-korean" placeholder="Korean">
             <input type="text" class="vocab-english" placeholder="English">
+            <select class="vocab-category">${categoryOptionsHtml()}</select>
             <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>
           </div>
         </div>
@@ -957,6 +971,7 @@ function addVocabRow() {
   row.innerHTML = `
     <input type="text" class="vocab-korean" placeholder="Korean">
     <input type="text" class="vocab-english" placeholder="English">
+    <select class="vocab-category">${categoryOptionsHtml()}</select>
     <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>`;
   container.appendChild(row);
 }
@@ -973,8 +988,9 @@ async function submitAddLevel() {
   for (const row of vocabRows) {
     const korean = row.querySelector('.vocab-korean').value.trim();
     const english = row.querySelector('.vocab-english').value.trim();
+    const category = row.querySelector('.vocab-category').value;
     if (korean && english) {
-      vocabulary.push({ korean, english });
+      vocabulary.push({ korean, english, category });
     }
   }
 
@@ -1064,4 +1080,25 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+let categoriesPromise = null;
+
+function categoryOptionsHtml(selected) {
+  if (!App.categoriesCache) return '';
+  return App.categoriesCache.map(c =>
+    `<option value="${escapeHtml(c)}"${c === selected ? ' selected' : ''}>${escapeHtml(c)}</option>`
+  ).join('');
+}
+
+async function ensureCategories() {
+  if (App.categoriesCache) return;
+  if (!categoriesPromise) {
+    categoriesPromise = API.categories().then(d => {
+      App.categoriesCache = d.categories || [];
+    }).catch(() => {
+      App.categoriesCache = [];
+    });
+  }
+  await categoriesPromise;
 }

@@ -67,8 +67,9 @@ func GetLevelHandler(c *gin.Context) {
 }
 
 type createLevelVocabularyItem struct {
-	Korean  string `json:"korean"`
-	English string `json:"english"`
+	Korean   string `json:"korean"`
+	English  string `json:"english"`
+	Category string `json:"category"`
 }
 
 type createLevelRequest struct {
@@ -110,8 +111,9 @@ func CreateLevelHandler(c *gin.Context) {
 	vocab := make([]repository.VocabEntry, len(req.Vocabulary))
 	for i, v := range req.Vocabulary {
 		vocab[i] = repository.VocabEntry{
-			Korean:  v.Korean,
-			English: v.English,
+			Korean:   v.Korean,
+			English:  v.English,
+			Category: v.Category,
 		}
 	}
 
@@ -253,8 +255,9 @@ func UpdateLevelVocabularyHandler(c *gin.Context) {
 	entries := make([]repository.VocabEntry, len(req.Vocabulary))
 	for i, v := range req.Vocabulary {
 		entries[i] = repository.VocabEntry{
-			Korean:  v.Korean,
-			English: v.English,
+			Korean:   v.Korean,
+			English:  v.English,
+			Category: v.Category,
 		}
 	}
 
@@ -267,4 +270,16 @@ func UpdateLevelVocabularyHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "vocabulary updated"})
+}
+
+func GetCategoriesHandler(c *gin.Context) {
+	categories, err := appConfig.Repository.Categories()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse{
+			Error: "failed to fetch categories",
+			Code:  "CATEGORIES_ERROR",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"categories": categories})
 }

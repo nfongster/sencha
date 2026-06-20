@@ -58,15 +58,6 @@ func (q *Queries) ListPhases(ctx context.Context) ([]Phase, error) {
 	return items, nil
 }
 
-const updatePhase = `-- name: UpdatePhase :exec
-UPDATE phases SET name = $2 WHERE number = $1
-`
-
-func (q *Queries) UpdatePhase(ctx context.Context, number int32, name string) error {
-	_, err := q.db.Exec(ctx, updatePhase, number, name)
-	return err
-}
-
 const maxPhaseNumber = `-- name: MaxPhaseNumber :one
 SELECT COALESCE(MAX(number), 0) FROM phases
 `
@@ -76,4 +67,18 @@ func (q *Queries) MaxPhaseNumber(ctx context.Context) (interface{}, error) {
 	var coalesce interface{}
 	err := row.Scan(&coalesce)
 	return coalesce, err
+}
+
+const updatePhase = `-- name: UpdatePhase :exec
+UPDATE phases SET name = $2 WHERE number = $1
+`
+
+type UpdatePhaseParams struct {
+	Number int32
+	Name   string
+}
+
+func (q *Queries) UpdatePhase(ctx context.Context, arg UpdatePhaseParams) error {
+	_, err := q.db.Exec(ctx, updatePhase, arg.Number, arg.Name)
+	return err
 }

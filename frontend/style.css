@@ -434,6 +434,30 @@ body {
   color: #9ca3af;
 }
 
+/* ── Vocab table (level detail modal) ── */
+.vocab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.vocab-table th {
+  text-align: left;
+  color: #9ca3af;
+  font-weight: normal;
+  padding: 4px 8px 8px 0;
+  border-bottom: 1px solid #374151;
+}
+
+.vocab-table td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.vocab-table .korean { color: #fff; }
+.vocab-table .english { color: #9ca3af; }
+.vocab-table .category { color: #6b7280; font-size: 12px; }
+
 .modal-form label {
   display: block;
   font-size: 13px;
@@ -473,7 +497,8 @@ body {
   margin-bottom: 8px;
 }
 
-.modal-form .vocab-row input {
+.modal-form .vocab-row input,
+.modal-form .vocab-row select {
   flex: 1;
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE vocabulary ADD COLUMN category TEXT NOT NULL DEFAULT '';
