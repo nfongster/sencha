@@ -336,8 +336,8 @@ func (r *PostgresRepository) LoadLevelData(levelNumber int) (*LevelData, error) 
 		if i == 0 {
 			n += remainder
 		}
-		subQueries = append(subQueries,
-			fmt.Sprintf(`(SELECT korean, english, category FROM vocabulary WHERE category = $%d ORDER BY RANDOM() LIMIT $%d)`, argIdx, argIdx+1))
+			subQueries = append(subQueries,
+				fmt.Sprintf(`(SELECT korean, english, category FROM vocabulary WHERE category = $%d LIMIT $%d)`, argIdx, argIdx+1))
 		args = append(args, int32(n))
 		argIdx += 2
 	}
