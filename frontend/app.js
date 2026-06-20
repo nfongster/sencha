@@ -127,6 +127,9 @@ function router() {
     case '#rules':
       renderRules(app);
       break;
+    case '#how-it-works':
+      renderHowItWorks(app);
+      break;
     default:
       renderHome(app);
   }
@@ -193,51 +196,52 @@ function renderHome(app) {
     <div class="home-buttons">
       <button class="btn btn-large btn-block" onclick="location.hash='#setup'">[1] Start</button>
       <button class="btn btn-large btn-block" onclick="location.hash='#rules'">[2] Rules</button>
-      <button class="btn btn-large btn-block" onclick="showHowItWorks()">[3] How it Works</button>
+      <button class="btn btn-large btn-block" onclick="location.hash='#how-it-works'">[3] How it Works</button>
     </div>`;
 }
 
-// ── How it Works ──
-function showHowItWorks() {
-  showModal(`
-    <div class="modal" style="max-width:560px;">
-      <button class="modal-close">&times;</button>
-      <div class="modal-title">How Sencha Works</div>
-      <div class="modal-body" style="text-align:left;font-size:14px;line-height:1.6;">
-        <h3 style="color:#4ade80;margin:0 0 6px;">Phases & Levels</h3>
-        <p style="margin:0 0 16px;color:#d1d5db;">
-          The curriculum is split into <strong>phases</strong> (broad topic groups).
-          Each phase contains numbered <strong>levels</strong>. Every level introduces
-          new grammar rules and vocabulary.
-        </p>
+// ── View: How it Works ──
+function renderHowItWorks(app) {
+  app.innerHTML = `
+    <div style="width:100%;text-align:left;margin-bottom:12px;"><button class="btn btn-sm" onclick="location.hash='#home'">← Home</button></div>
+    <div style="max-width:640px;margin:0 auto;text-align:left;">
 
-        <h3 style="color:#4ade80;margin:0 0 6px;">Sentence Generation</h3>
-        <p style="margin:0 0 16px;color:#d1d5db;">
-          When you start a session for a level, the LLM generates practice sentences using:
-        </p>
-        <ul style="margin:0 0 16px;padding-left:20px;color:#d1d5db;">
-          <li><strong>Grammar</strong> — only the current level's rules</li>
-          <li><strong>Vocabulary</strong> — all words from the current level + 10 random words from other levels for review</li>
-        </ul>
+      <h1 style="color:#fff;font-size:28px;margin:0 0 24px;">How Sencha Works</h1>
 
-        <h3 style="color:#4ade80;margin:0 0 6px;">Grading</h3>
-        <p style="margin:0 0 16px;color:#d1d5db;">
-          After revealing a card, rate yourself:<br>
-          <span style="color:#4ade80;">Pass</span> — you knew it &nbsp;|&nbsp;
-          <span style="color:#fbbf24;">Hard</span> — you struggled &nbsp;|&nbsp;
-          <span style="color:#f87171;">Fail</span> — you didn't know it
-        </p>
+      <h2 style="color:#4ade80;font-size:18px;margin:0 0 8px;">Phases &amp; Levels</h2>
+      <p style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 24px;">
+        The curriculum is split into <strong>phases</strong> (broad topic groups).
+        Each phase contains numbered <strong>levels</strong>. Every level introduces
+        new grammar rules and vocabulary.
+      </p>
 
-        <h3 style="color:#4ade80;margin:0 0 6px;">Keyboard Shortcuts</h3>
-        <p style="margin:0;color:#d1d5db;">
-          <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">1</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">2</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">3</code> grade &nbsp;|&nbsp;
-          <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">ENTER</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">SPACE</code> reveal &nbsp;|&nbsp;
-          <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">ESC</code> close &nbsp;|&nbsp;
-          <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">S</code> new session &nbsp;|&nbsp;
-          <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">Q</code> quit
-        </p>
-      </div>
-    </div>`);
+      <h2 style="color:#4ade80;font-size:18px;margin:0 0 8px;">Sentence Generation</h2>
+      <p style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 8px;">
+        When you start a session for a level, the LLM generates practice sentences using:
+      </p>
+      <ul style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 24px;padding-left:20px;">
+        <li><strong>Grammar</strong> — only the current level's rules</li>
+        <li><strong>Vocabulary</strong> — all words from the current level + 10 random words from other levels for review</li>
+      </ul>
+
+      <h2 style="color:#4ade80;font-size:18px;margin:0 0 8px;">Grading</h2>
+      <p style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 24px;">
+        After revealing a card, rate yourself:<br>
+        <span style="color:#4ade80;">Pass</span> — you knew it &nbsp;|&nbsp;
+        <span style="color:#fbbf24;">Hard</span> — you struggled &nbsp;|&nbsp;
+        <span style="color:#f87171;">Fail</span> — you didn't know it
+      </p>
+
+      <h2 style="color:#4ade80;font-size:18px;margin:0 0 8px;">Keyboard Shortcuts</h2>
+      <p style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 24px;">
+        <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">1</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">2</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">3</code> grade &nbsp;|&nbsp;
+        <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">ENTER</code>/<code style="background:#1f2937;padding:1px 6px;border-radius:3px;">SPACE</code> reveal &nbsp;|&nbsp;
+        <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">ESC</code> close &nbsp;|&nbsp;
+        <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">S</code> new session &nbsp;|&nbsp;
+        <code style="background:#1f2937;padding:1px 6px;border-radius:3px;">Q</code> quit
+      </p>
+
+    </div>`;
 }
 
 // ── View: Session Setup ──
@@ -855,7 +859,7 @@ document.addEventListener('keydown', (e) => {
   if (hash === '#home') {
     if (e.key === '1') location.hash = '#setup';
     if (e.key === '2') location.hash = '#rules';
-    if (e.key === '3') { showHowItWorks(); e.preventDefault(); }
+    if (e.key === '3') { location.hash = '#how-it-works'; e.preventDefault(); }
   }
 
   if (hash === '#setup') {
