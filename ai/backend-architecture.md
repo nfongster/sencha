@@ -56,6 +56,7 @@ Stack: Go (Gin), PostgreSQL (pgx + golang-migrate + sqlc), in-memory fallback.
 | Method | Route | Request | Response |
 |--------|-------|---------|----------|
 | `POST` | `/api/levels` | `{"phase_number": int, "grammar_markdown": string, "vocabulary": [{korean, english}]}` | `{"message": "level created", "level_number": int}` |
+| `POST` | `/api/levels/extract-from-url` | `{"url": string}` | `{"grammar_markdown": string, "vocabulary": [{korean, english, category}]}` |
 | `GET` | `/api/levels/max` | — | `{"max": int}` |
 | `GET` | `/api/levels/:number` | — | `{"level": {number, phase_number, grammar_md}, "vocabulary": [{korean, english}], "level_vocabulary": [{korean, english}]}` |
 | `PATCH` | `/api/levels/:number` | `{"grammar_markdown": string}` | `{"message": "level rules updated"}` |

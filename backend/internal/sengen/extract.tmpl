@@ -1,0 +1,17 @@
+You are a Korean language teaching assistant. Given the following HTML content from a webpage, extract:
+
+1. Korean grammar rules found in the content. Write them in Markdown format.
+2. Korean vocabulary words found in the content, with their English translations and categories (noun, verb, adjective, adverb, pronoun, determiner, etc.).
+
+Return your response as a JSON object with this exact structure:
+{
+  "grammar_markdown": "...",
+  "vocabulary": [
+    {"korean": "...", "english": "...", "category": "..."}
+  ]
+}
+
+Only return valid JSON. Do not include any other text.
+
+Webpage HTML:
+{{.HTML}}

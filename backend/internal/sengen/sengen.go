@@ -281,6 +281,63 @@ func truncate(s string, n int) string {
 	return s[:n] + "..."
 }
 
+// ── URL Extraction ──
+
+//go:embed extract.tmpl
+var extractTmplSrc string
+
+type ExtractResult struct {
+	GrammarMD  string                   `json:"grammar_markdown"`
+	Vocabulary []repository.VocabEntry  `json:"vocabulary"`
+}
+
+type extractData struct {
+	HTML string
+}
+
+type ExtractFunc func(string) (*ExtractResult, error)
+
+var testExtractFunc ExtractFunc
+
+func SetExtractFunc(fn ExtractFunc) {
+	testExtractFunc = fn
+}
+
+func ExtractFromHTML(html string) (*ExtractResult, error) {
+	if testExtractFunc != nil {
+		return testExtractFunc(html)
+	}
+	if globalConfig == nil {
+		return nil, fmt.Errorf("sengen not initialized")
+	}
+
+	tmpl, err := template.New("extract").Parse(extractTmplSrc)
+	if err != nil {
+		return nil, fmt.Errorf("parsing extract template: %w", err)
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, extractData{HTML: html}); err != nil {
+		return nil, fmt.Errorf("executing extract template: %w", err)
+	}
+
+	reply, err := callLLM(buf.String())
+	if err != nil {
+		return nil, fmt.Errorf("LLM call failed: %w", err)
+	}
+
+	var result ExtractResult
+	if err := json.Unmarshal([]byte(reply), &result); err != nil {
+		return nil, fmt.Errorf("parsing LLM response as JSON: %w", err)
+	}
+
+	if result.GrammarMD == "" {
+		return nil, fmt.Errorf("LLM returned no grammar rules")
+	}
+
+	return &result, nil
+}
+
 func parseResponse(text string) ([]session.SentencePair, error) {
 	raw := strings.Split(strings.TrimSpace(text), "\n")
 

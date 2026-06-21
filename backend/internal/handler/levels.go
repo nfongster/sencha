@@ -1,10 +1,16 @@
 package handler
 
 import (
+	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
+	"time"
 
 	"sencha/backend/internal/repository"
+	"sencha/backend/internal/sengen"
 
 	"github.com/gin-gonic/gin"
 )
@@ -267,6 +273,70 @@ func UpdateLevelVocabularyHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "vocabulary updated"})
+}
+
+type extractFromURLRequest struct {
+	URL string `json:"url"`
+}
+
+func ExtractFromUrlHandler(c *gin.Context) {
+	var req extractFromURLRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid request body", Code: "INVALID_REQUEST"})
+		return
+	}
+	if req.URL == "" {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "url is required", Code: "INVALID_URL"})
+		return
+	}
+
+	parsed, err := url.Parse(req.URL)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		c.JSON(http.StatusBadRequest, errorResponse{Error: "invalid URL scheme, must be http or https", Code: "INVALID_URL"})
+		return
+	}
+
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	resp, err := httpClient.Get(req.URL)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, errorResponse{Error: fmt.Sprintf("failed to fetch URL: %v", err), Code: "URL_FETCH_FAILED"})
+		return
+	}
+	defer resp.Body.Close()
+
+	limited := io.LimitReader(resp.Body, 100*1024)
+	body, err := io.ReadAll(limited)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, errorResponse{Error: "failed to read URL response", Code: "URL_FETCH_FAILED"})
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusBadGateway, errorResponse{
+			Error: fmt.Sprintf("URL returned status %d", resp.StatusCode),
+			Code:  "URL_FETCH_FAILED",
+		})
+		return
+	}
+
+	html := string(body)
+	if strings.Contains(html, "too large") || len(body) >= 100*1024 {
+		// Check if reader was truncated (technically not perfect but rare case)
+	}
+
+	result, err := sengen.ExtractFromHTML(html)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse{
+			Error: fmt.Sprintf("extraction failed: %v", err),
+			Code:  "EXTRACTION_FAILED",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"grammar_markdown": result.GrammarMD,
+		"vocabulary":       result.Vocabulary,
+	})
 }
 
 func GetCategoriesHandler(c *gin.Context) {

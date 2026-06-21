@@ -119,6 +119,10 @@ const API = {
     return this.post('/api/levels/' + levelNumber + '/sentences/generate', { count });
   },
 
+  extractFromUrl(url) {
+    return this.post('/api/levels/extract-from-url', { url });
+  },
+
   getPrompt() {
     return this.get('/api/prompt');
   },
@@ -605,6 +609,77 @@ async function submitClearSentences(levelNumber) {
   }
 }
 
+// ── Extract from URL ──
+function showExtractUrlModal(levelNumber) {
+  const isEditMode = levelNumber != null;
+  showModal(`
+    <div class="modal" style="max-width:500px;">
+      <button class="modal-close">&times;</button>
+      <div class="modal-title">Auto-fill from URL</div>
+      <div class="modal-form">
+        <label>Webpage URL</label>
+        <input type="url" id="extract-url-input" placeholder="https://example.com/korean-lesson" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid #374151;background:#1f2937;color:#fff;font-size:14px;">
+        <div id="extract-status" style="color:#9ca3af;font-size:13px;margin-top:8px;"></div>
+        <div class="form-actions">
+          <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-sm btn-green" id="extract-submit-btn" onclick="submitExtractUrl(${isEditMode ? levelNumber : 'null'})">Extract</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+async function submitExtractUrl(levelNumber) {
+  const url = document.getElementById('extract-url-input').value.trim();
+  if (!url) { showError('URL is required'); return; }
+
+  const btn = document.getElementById('extract-submit-btn');
+  const status = document.getElementById('extract-status');
+  btn.disabled = true;
+  btn.textContent = 'Extracting...';
+  status.textContent = 'Fetching and analyzing webpage...';
+
+  try {
+    const data = await API.extractFromUrl(url);
+    closeModal();
+
+    if (levelNumber != null) {
+      // Edit mode: update the level, then re-show detail
+      await API.updateLevel(levelNumber, data.grammar_markdown);
+      if (data.vocabulary && data.vocabulary.length > 0) {
+        await API.setVocabulary(levelNumber, data.vocabulary);
+      }
+      showLevelDetail(levelNumber);
+    } else {
+      // Add Level mode: populate the form
+      populateAddLevelForm(data);
+    }
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    btn.disabled = false;
+    btn.textContent = 'Extract';
+  }
+}
+
+function populateAddLevelForm(data) {
+  const grammarField = document.getElementById('add-level-grammar');
+  if (grammarField) grammarField.value = data.grammar_markdown || '';
+
+  const vocabContainer = document.getElementById('vocab-rows');
+  if (vocabContainer && data.vocabulary && data.vocabulary.length > 0) {
+    vocabContainer.innerHTML = '';
+    for (const v of data.vocabulary) {
+      const row = document.createElement('div');
+      row.className = 'vocab-row';
+      row.innerHTML = `
+        <input type="text" class="vocab-korean" value="${escapeHtml(v.korean)}">
+        <input type="text" class="vocab-english" value="${escapeHtml(v.english)}">
+        <select class="vocab-category">${categoryOptionsHtml(v.category)}</select>
+        <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>`;
+      vocabContainer.appendChild(row);
+    }
+  }
+}
+
 // ── View: Session Setup ──
 let selectedDirection = 'korean-to-english';
 
@@ -903,6 +978,7 @@ async function showLevelDetail(levelNumber) {
           <button class="btn btn-sm" style="background:#b91c1c;" onclick="confirmClearSentences(${level.number})" ${sentenceCount === 0 ? 'disabled' : ''}>Clear</button>
           <button class="btn btn-sm" onclick="showEditLevelForm(${level.number})">Edit Rules</button>
           <button class="btn btn-sm" onclick="showEditVocabForm(${level.number})">Edit Vocab</button>
+          <button class="btn btn-sm" onclick="showExtractUrlModal(${level.number})">Auto-fill from URL</button>
           <button class="btn btn-sm" style="background:#b91c1c;" onclick="confirmDeleteLevel(${level.number})">Delete Level</button>
         </div>
       </div>`);
@@ -1189,6 +1265,7 @@ async function showAddLevelModal() {
           </div>
         </div>
         <button class="btn btn-sm" onclick="addVocabRow()" style="margin-top:8px;">+ Add another word</button>
+        <button class="btn btn-sm" onclick="showExtractUrlModal(null)" style="margin-top:8px;margin-left:8px;">Auto-fill from URL</button>
         <div class="form-actions">
           <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
           <button class="btn btn-sm btn-green" onclick="submitAddLevel()">Create</button>
