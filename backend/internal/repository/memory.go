@@ -8,25 +8,25 @@ import (
 )
 
 type memoryRepo struct {
-	mu           sync.RWMutex
-	phases       map[int]Phase
-	levels       map[int]Level
-	vocab        []VocabEntry // cumulative, for VocabularyUpTo
-	vocabByLevel map[int][]VocabEntry
-	categories   map[string]bool
-	sentences    []Sentence
-	nextLevel    int
+	mu              sync.RWMutex
+	phases          map[int]Phase
+	levels          map[int]Level
+	vocab           []VocabEntry // cumulative, for VocabularyUpTo
+	vocabByLevel    map[int][]VocabEntry
+	categories      map[string]bool
+	sentencesByLevel map[int][]Sentence
+	nextLevel       int
 }
 
 func NewMemory() Repository {
 	return &memoryRepo{
-		phases:       make(map[int]Phase),
-		levels:       make(map[int]Level),
-		vocab:        nil,
-		vocabByLevel: make(map[int][]VocabEntry),
-		categories:   make(map[string]bool),
-		sentences:    nil,
-		nextLevel:    1,
+		phases:           make(map[int]Phase),
+		levels:           make(map[int]Level),
+		vocab:            nil,
+		vocabByLevel:     make(map[int][]VocabEntry),
+		categories:       make(map[string]bool),
+		sentencesByLevel: make(map[int][]Sentence),
+		nextLevel:        1,
 	}
 }
 
@@ -276,8 +276,50 @@ func (r *memoryRepo) rebuildCategories() {
 func (r *memoryRepo) SaveSentences(sentences []Sentence) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.sentences = append(r.sentences, sentences...)
+	for _, s := range sentences {
+		r.sentencesByLevel[s.LevelNumber] = append(r.sentencesByLevel[s.LevelNumber], s)
+	}
 	return nil
+}
+
+func (r *memoryRepo) SentencesForLevel(levelNumber int) ([]Sentence, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make([]Sentence, len(r.sentencesByLevel[levelNumber]))
+	copy(out, r.sentencesByLevel[levelNumber])
+	return out, nil
+}
+
+func (r *memoryRepo) CountSentencesForLevel(levelNumber int) (int, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return len(r.sentencesByLevel[levelNumber]), nil
+}
+
+func (r *memoryRepo) DeleteSentencesForLevel(levelNumber int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.sentencesByLevel, levelNumber)
+	return nil
+}
+
+func (r *memoryRepo) RandomSentencesForLevel(levelNumber int, count int) ([]Sentence, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	pool := r.sentencesByLevel[levelNumber]
+	if len(pool) == 0 {
+		return nil, nil
+	}
+	indices := rand.Perm(len(pool))
+	n := count
+	if n > len(pool) {
+		n = len(pool)
+	}
+	out := make([]Sentence, n)
+	for i := 0; i < n; i++ {
+		out[i] = pool[indices[i]]
+	}
+	return out, nil
 }
 
 func (r *memoryRepo) LoadLevelData(levelNumber int) (*LevelData, error) {
