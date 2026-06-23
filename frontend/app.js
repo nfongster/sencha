@@ -626,7 +626,7 @@ async function showLevelDetail(levelNumber) {
   try {
     const data = await API.getLevel(levelNumber);
     const level = data.level;
-    const vocab = data.vocabulary || [];
+    const vocab = data.level_vocabulary || [];
 
     let grammarHtml = level.grammar_md ? marked.parse(level.grammar_md) : '<em>No grammar</em>';
 
