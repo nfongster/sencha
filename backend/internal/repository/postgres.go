@@ -288,6 +288,53 @@ func (r *PostgresRepository) Categories() ([]string, error) {
 	return cats, rows.Err()
 }
 
+func (r *PostgresRepository) SentencesForLevel(levelNumber int) ([]Sentence, error) {
+	rows, err := r.queries.ListSentencesByLevel(r.ctx, int32(levelNumber))
+	if err != nil {
+		return nil, err
+	}
+	sentences := make([]Sentence, len(rows))
+	for i, row := range rows {
+		sentences[i] = Sentence{
+			LevelNumber: int(row.LevelNumber),
+			Korean:      row.Korean,
+			English:     row.English,
+		}
+	}
+	return sentences, nil
+}
+
+func (r *PostgresRepository) CountSentencesForLevel(levelNumber int) (int, error) {
+	count, err := r.queries.CountSentencesByLevel(r.ctx, int32(levelNumber))
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
+}
+
+func (r *PostgresRepository) DeleteSentencesForLevel(levelNumber int) error {
+	return r.queries.DeleteSentencesByLevel(r.ctx, int32(levelNumber))
+}
+
+func (r *PostgresRepository) RandomSentencesForLevel(levelNumber int, count int) ([]Sentence, error) {
+	rows, err := r.queries.GetRandomSentencesByLevel(r.ctx, db.GetRandomSentencesByLevelParams{
+		LevelNumber: int32(levelNumber),
+		Limit:       int32(count),
+	})
+	if err != nil {
+		return nil, err
+	}
+	sentences := make([]Sentence, len(rows))
+	for i, row := range rows {
+		sentences[i] = Sentence{
+			LevelNumber: int(row.LevelNumber),
+			Korean:      row.Korean,
+			English:     row.English,
+		}
+	}
+	return sentences, nil
+}
+
 func (r *PostgresRepository) SaveSentences(sentences []Sentence) error {
 	params := make([]db.SaveSentencesParams, len(sentences))
 	for i, s := range sentences {

@@ -77,14 +77,37 @@ func CreateSessionHandler(c *gin.Context) {
 		return
 	}
 
-	pairs, err := sengen.Generate(10, *levelData)
+	// 1. Try to get 10 random sentences from DB
+	sentences, err := appConfig.Repository.RandomSentencesForLevel(levelNum, 10)
 	if err != nil {
-		c.JSON(http.StatusServiceUnavailable, errorResponse{
-			Error: "sentence generation failed",
-			Code:  "GENERATION_FAILED",
-		})
-		return
+		log.Printf("[handler] RandomSentencesForLevel failed: %v", err)
 	}
+
+	var pairs []session.SentencePair
+
+	if len(sentences) < 10 {
+		// 2. Generate the shortfall
+		needed := 10 - len(sentences)
+		newPairs, err := sengen.Generate(needed, *levelData)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, errorResponse{
+				Error: "sentence generation failed",
+				Code:  "GENERATION_FAILED",
+			})
+			return
+		}
+		// Convert to sentences and save
+		newSentences := sessionsToSentences(newPairs, levelNum)
+		if err := appConfig.Repository.SaveSentences(newSentences); err != nil {
+			log.Printf("[handler] failed to save sentences: %v", err)
+		}
+		// Merge
+		for _, s := range newSentences {
+			sentences = append(sentences, s)
+		}
+	}
+
+	pairs = sentencesToPairs(sentences)
 
 	var sess *session.Session
 	if req.Direction != "" {
@@ -94,10 +117,6 @@ func CreateSessionHandler(c *gin.Context) {
 	}
 
 	store.Set(sess.ID, sess)
-
-	if err := appConfig.Repository.SaveSentences(sessionsToSentences(pairs, levelNum)); err != nil {
-		log.Printf("[handler] failed to save sentences: %v", err)
-	}
 
 	c.JSON(http.StatusCreated, sessionResponse{
 		SessionID:       sess.ID,

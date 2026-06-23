@@ -5,8 +5,97 @@
 
 package db
 
+import (
+	"context"
+)
+
 type SaveSentencesParams struct {
 	LevelNumber int32
 	Korean      string
 	English     string
+}
+
+type ListSentencesByLevelRow struct {
+	LevelNumber int32
+	Korean      string
+	English     string
+}
+
+const listSentencesByLevel = `-- name: ListSentencesByLevel :many
+SELECT level_number, korean, english FROM sentences WHERE level_number = $1 ORDER BY id
+`
+
+func (q *Queries) ListSentencesByLevel(ctx context.Context, levelNumber int32) ([]ListSentencesByLevelRow, error) {
+	rows, err := q.db.Query(ctx, listSentencesByLevel, levelNumber)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSentencesByLevelRow
+	for rows.Next() {
+		var i ListSentencesByLevelRow
+		if err := rows.Scan(&i.LevelNumber, &i.Korean, &i.English); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countSentencesByLevel = `-- name: CountSentencesByLevel :one
+SELECT COUNT(*) FROM sentences WHERE level_number = $1
+`
+
+func (q *Queries) CountSentencesByLevel(ctx context.Context, levelNumber int32) (int64, error) {
+	row := q.db.QueryRow(ctx, countSentencesByLevel, levelNumber)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const deleteSentencesByLevel = `-- name: DeleteSentencesByLevel :exec
+DELETE FROM sentences WHERE level_number = $1
+`
+
+func (q *Queries) DeleteSentencesByLevel(ctx context.Context, levelNumber int32) error {
+	_, err := q.db.Exec(ctx, deleteSentencesByLevel, levelNumber)
+	return err
+}
+
+type GetRandomSentencesByLevelParams struct {
+	LevelNumber int32
+	Limit       int32
+}
+
+type GetRandomSentencesByLevelRow struct {
+	LevelNumber int32
+	Korean      string
+	English     string
+}
+
+const getRandomSentencesByLevel = `-- name: GetRandomSentencesByLevel :many
+SELECT level_number, korean, english FROM sentences WHERE level_number = $1 ORDER BY RANDOM() LIMIT $2
+`
+
+func (q *Queries) GetRandomSentencesByLevel(ctx context.Context, arg GetRandomSentencesByLevelParams) ([]GetRandomSentencesByLevelRow, error) {
+	rows, err := q.db.Query(ctx, getRandomSentencesByLevel, arg.LevelNumber, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRandomSentencesByLevelRow
+	for rows.Next() {
+		var i GetRandomSentencesByLevelRow
+		if err := rows.Scan(&i.LevelNumber, &i.Korean, &i.English); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

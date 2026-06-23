@@ -61,6 +61,10 @@ Stack: Go (Gin), PostgreSQL (pgx + golang-migrate + sqlc), in-memory fallback.
 | `PATCH` | `/api/levels/:number` | `{"grammar_markdown": string}` | `{"message": "level rules updated"}` |
 | `PUT` | `/api/levels/:number/vocabulary` | `{"vocabulary": [{korean, english}]}` | `{"message": "vocabulary updated"}` |
 | `DELETE` | `/api/levels/:number` | — | `{"message": "level deleted"}` |
+| `GET` | `/api/levels/:number/sentences` | — | `{"sentences": [{korean, english}]}` |
+| `GET` | `/api/levels/:number/sentences/count` | — | `{"count": int}` |
+| `DELETE` | `/api/levels/:number/sentences` | — | `{"message": "sentences deleted"}` |
+| `POST` | `/api/levels/:number/sentences/generate` | `{"count": int}` | `{"sentences": [{korean, english}]}` |
 
 **Level creation rule:** auto-assigns `max_level + 1`. Grammar is required. Phase must exist.
 
@@ -86,9 +90,10 @@ Stack: Go (Gin), PostgreSQL (pgx + golang-migrate + sqlc), in-memory fallback.
 
 **Session creation flow:**
 1. Fetch `LevelData` from repository for the given level (defaults to 1).
-2. Call `sengen.Generate(10, levelData)` — generates 10 sentence pairs via LLM.
-3. Save generated sentences to `sentences` table (async, non-fatal on error).
+2. Try to get 10 random sentences from the DB for the level.
+3. If fewer than 10 exist, generate the shortfall via `sengen.Generate(needed, levelData)` and save.
 4. Create ephemeral session (in-memory store) with shuffled cards.
+- If 10 sentences exist → no LLM call (fast path). If 0 → generates all 10 (current behavior).
 
 ### Error response format
 
@@ -151,6 +156,10 @@ type Repository interface {
 
     // Sentences
     SaveSentences(sentences []Sentence) error
+    SentencesForLevel(levelNumber int) ([]Sentence, error)
+    CountSentencesForLevel(levelNumber int) (int, error)
+    DeleteSentencesForLevel(levelNumber int) error
+    RandomSentencesForLevel(levelNumber int, count int) ([]Sentence, error)
 
     // Convenience
     LoadLevelData(levelNumber int) (*LevelData, error)

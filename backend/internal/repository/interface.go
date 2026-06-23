@@ -28,6 +28,10 @@ type Repository interface {
 
 	// Sentences
 	SaveSentences(sentences []Sentence) error
+	SentencesForLevel(levelNumber int) ([]Sentence, error)
+	CountSentencesForLevel(levelNumber int) (int, error)
+	DeleteSentencesForLevel(levelNumber int) error
+	RandomSentencesForLevel(levelNumber int, count int) ([]Sentence, error)
 
 	// Convenience
 	LoadLevelData(levelNumber int) (*LevelData, error)

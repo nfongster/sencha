@@ -34,6 +34,11 @@ func RegisterRoutes(r *gin.Engine) {
 	r.PUT("/api/levels/:number/vocabulary", UpdateLevelVocabularyHandler)
 	r.DELETE("/api/levels/:number", DeleteLevelHandler)
 
+	r.GET("/api/levels/:number/sentences/count", CountSentencesHandler)
+	r.GET("/api/levels/:number/sentences", ListSentencesHandler)
+	r.DELETE("/api/levels/:number/sentences", DeleteSentencesHandler)
+	r.POST("/api/levels/:number/sentences/generate", GenerateSentencesHandler)
+
 	api := r.Group("/api/sessions")
 	api.POST("", CreateSessionHandler)
 	api.GET("/:id", GetSessionHandler)

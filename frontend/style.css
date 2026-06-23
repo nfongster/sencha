@@ -555,6 +555,56 @@ body {
   border-color: #6366f1;
 }
 
+/* ── Sentence count ── */
+.sentence-count {
+  display: block;
+  font-size: 10px;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
+/* ── Sentences table (view modal) ── */
+.sentences-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.sentences-table th {
+  text-align: left;
+  color: #9ca3af;
+  font-weight: normal;
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid #374151;
+  position: sticky;
+  top: 0;
+  background: #111827;
+}
+
+.sentences-table td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.sentences-table .korean { color: #fff; }
+.sentences-table .english { color: #9ca3af; }
+
+/* ── Count input ── */
+.count-input {
+  width: 120px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #374151;
+  background: #1f2937;
+  color: #fff;
+  font-size: 16px;
+  outline: none;
+}
+
+.count-input:focus {
+  border-color: #6366f1;
+}
+
 /* ── Persistent banner (session expired) ── */
 .persistent-banner {
   background: #78350f;

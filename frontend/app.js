@@ -103,6 +103,22 @@ const API = {
     return this.get('/api/levels/categories');
   },
 
+  countSentences(levelNumber) {
+    return this.get('/api/levels/' + levelNumber + '/sentences/count');
+  },
+
+  listSentences(levelNumber) {
+    return this.get('/api/levels/' + levelNumber + '/sentences');
+  },
+
+  deleteSentences(levelNumber) {
+    return this.del('/api/levels/' + levelNumber + '/sentences');
+  },
+
+  generateSentences(levelNumber, count) {
+    return this.post('/api/levels/' + levelNumber + '/sentences/generate', { count });
+  },
+
   getPrompt() {
     return this.get('/api/prompt');
   },
@@ -502,6 +518,92 @@ async function submitPromptEditor() {
   }
 }
 
+// ── Sentence Management Modals ──
+function showSentencesGenerateModal(levelNumber) {
+  showModal(`
+    <div class="modal" style="max-width:420px;">
+      <button class="modal-close">&times;</button>
+      <div class="modal-title">Generate Sentences</div>
+      <div class="modal-form">
+        <label>Number of sentences (1–100)</label>
+        <input type="number" id="generate-sentence-count" class="count-input" min="1" max="100" value="10">
+        <div class="form-actions">
+          <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-sm btn-green" onclick="submitGenerateSentences(${levelNumber})">Generate</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+async function submitGenerateSentences(levelNumber) {
+  const count = parseInt(document.getElementById('generate-sentence-count').value);
+  if (isNaN(count) || count < 1 || count > 100) { showError('Count must be between 1 and 100'); return; }
+  try {
+    await API.generateSentences(levelNumber, count);
+    closeModal();
+    showLevelDetail(levelNumber);
+  } catch (err) {
+    showError('Failed to generate sentences: ' + err.message);
+  }
+}
+
+async function showViewSentencesModal(levelNumber) {
+  try {
+    const data = await API.listSentences(levelNumber);
+    const sentences = data.sentences || [];
+    let rowsHtml = '';
+    if (sentences.length === 0) {
+      rowsHtml = '<tr><td colspan="2" style="color:#6b7280;text-align:center;padding:20px;">No sentences for this level</td></tr>';
+    } else {
+      for (const s of sentences) {
+        rowsHtml += `<tr><td class="korean">${escapeHtml(s.korean)}</td><td class="english">${escapeHtml(s.english)}</td></tr>`;
+      }
+    }
+    showModal(`
+      <div class="modal">
+        <button class="modal-close">&times;</button>
+        <div class="modal-title">Sentences — Level ${levelNumber}</div>
+        <div style="max-height:400px;overflow-y:auto;">
+          <table class="sentences-table">
+            <thead><tr><th>Korean</th><th>English</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-sm" onclick="closeModal()">Close</button>
+        </div>
+      </div>`);
+  } catch (err) {
+    showError('Failed to load sentences: ' + err.message);
+  }
+}
+
+function confirmClearSentences(levelNumber) {
+  showModal(`
+    <div class="modal" style="max-width:420px;">
+      <button class="modal-close">&times;</button>
+      <div class="modal-title" style="color:#f87171;">Clear Sentences?</div>
+      <div class="modal-body">
+        <p>Delete all sentences for Level ${levelNumber}?</p>
+        <p style="margin-top:8px;font-size:13px;color:#6b7280;">This cannot be undone. New sentences will be generated on the next session.</p>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-sm" style="background:#b91c1c;" onclick="submitClearSentences(${levelNumber})">Clear</button>
+      </div>
+    </div>`);
+}
+
+async function submitClearSentences(levelNumber) {
+  closeModal();
+  try {
+    await API.deleteSentences(levelNumber);
+    showLevelDetail(levelNumber);
+  } catch (err) {
+    showError('Failed to clear sentences: ' + err.message);
+  }
+}
+
 // ── View: Session Setup ──
 let selectedDirection = 'korean-to-english';
 
@@ -753,9 +855,13 @@ function renderRulesContent(app) {
 
 async function showLevelDetail(levelNumber) {
   try {
-    const data = await API.getLevel(levelNumber);
-    const level = data.level;
-    const vocab = data.level_vocabulary || [];
+    const [levelData, countData] = await Promise.all([
+      API.getLevel(levelNumber),
+      API.countSentences(levelNumber).catch(() => ({ count: 0 })),
+    ]);
+    const level = levelData.level;
+    const vocab = levelData.level_vocabulary || [];
+    const sentenceCount = countData.count;
 
     let grammarHtml = level.grammar_md ? marked.parse(level.grammar_md) : '<em>No grammar</em>';
 
@@ -782,9 +888,17 @@ async function showLevelDetail(levelNumber) {
           <div class="modal-body-col">
             <h3>Vocabulary</h3>
             ${vocabHtml}
+            <h3 style="margin-top:16px;">Sentences</h3>
+            <p style="color:#9ca3af;font-size:14px;">
+              ${sentenceCount} sentence${sentenceCount !== 1 ? 's' : ''} generated
+              <a href="#" style="color:#4ade80;font-size:13px;margin-left:8px;" onclick="showViewSentencesModal(${level.number});return false;">view</a>
+            </p>
           </div>
         </div>
         <div class="form-actions">
+          <button class="btn btn-sm" onclick="showSentencesGenerateModal(${level.number})">Generate</button>
+          <button class="btn btn-sm" onclick="showViewSentencesModal(${level.number})">View Sentences</button>
+          <button class="btn btn-sm" style="background:#b91c1c;" onclick="confirmClearSentences(${level.number})" ${sentenceCount === 0 ? 'disabled' : ''}>Clear</button>
           <button class="btn btn-sm" onclick="showEditLevelForm(${level.number})">Edit Rules</button>
           <button class="btn btn-sm" onclick="showEditVocabForm(${level.number})">Edit Vocab</button>
           <button class="btn btn-sm" style="background:#b91c1c;" onclick="confirmDeleteLevel(${level.number})">Delete Level</button>
