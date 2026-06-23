@@ -781,7 +781,7 @@ async function showEditVocabForm(levelNumber) {
         <div class="vocab-row">
           <input type="text" class="vocab-korean" placeholder="Korean">
           <input type="text" class="vocab-english" placeholder="English">
-          <select class="vocab-category">${categoryOptionsHtml()}</select>
+          <input class="vocab-category" list="cd" placeholder="noun">
           <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>
         </div>`;
     } else {
@@ -790,7 +790,7 @@ async function showEditVocabForm(levelNumber) {
           <div class="vocab-row">
             <input type="text" class="vocab-korean" value="${escapeHtml(v.korean)}">
             <input type="text" class="vocab-english" value="${escapeHtml(v.english)}">
-            <select class="vocab-category">${categoryOptionsHtml(v.category)}</select>
+            <input class="vocab-category" list="cd" value="${escapeHtml(v.category)}" placeholder="noun">
             <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>
           </div>`;
       }
@@ -800,6 +800,7 @@ async function showEditVocabForm(levelNumber) {
       <div class="modal">
         <button class="modal-close">&times;</button>
         <div class="modal-title">Edit Level ${levelNumber} Vocabulary</div>
+        <datalist id="cd">${categoryOptionsHtml()}</datalist>
         <div class="modal-form">
           <div id="edit-vocab-rows">${rowsHtml}</div>
           <button class="btn btn-sm" onclick="addEditVocabRow()" style="margin-top:8px;">+ Add another word</button>
@@ -821,7 +822,7 @@ function addEditVocabRow() {
   row.innerHTML = `
     <input type="text" class="vocab-korean" placeholder="Korean">
     <input type="text" class="vocab-english" placeholder="English">
-    <select class="vocab-category">${categoryOptionsHtml()}</select>
+    <input class="vocab-category" list="cd" placeholder="noun">
     <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>`;
   container.appendChild(row);
 }
@@ -929,6 +930,7 @@ async function showAddLevelModal() {
     <div class="modal">
       <button class="modal-close">&times;</button>
       <div class="modal-title">Add Level</div>
+      <datalist id="cd">${categoryOptionsHtml()}</datalist>
       <div class="modal-form" id="add-level-form">
         <label>Phase</label>
         <select id="add-level-phase">${phaseOptions}</select>
@@ -939,7 +941,7 @@ async function showAddLevelModal() {
           <div class="vocab-row">
             <input type="text" class="vocab-korean" placeholder="Korean">
             <input type="text" class="vocab-english" placeholder="English">
-            <select class="vocab-category">${categoryOptionsHtml()}</select>
+            <input class="vocab-category" list="cd" placeholder="noun">
             <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>
           </div>
         </div>
@@ -959,7 +961,7 @@ function addVocabRow() {
   row.innerHTML = `
     <input type="text" class="vocab-korean" placeholder="Korean">
     <input type="text" class="vocab-english" placeholder="English">
-    <select class="vocab-category">${categoryOptionsHtml()}</select>
+    <input class="vocab-category" list="cd" placeholder="noun">
     <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>`;
   container.appendChild(row);
 }
