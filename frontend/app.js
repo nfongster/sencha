@@ -212,13 +212,12 @@ function router() {
 }
 
 window.addEventListener('hashchange', () => {
-  if (location.hash.startsWith('#home')) {
-    router();
-  }
+  router();
 });
 window.addEventListener('load', () => {
   restoreSessionState();
   verifyAndRender();
+  if (!App.sessionId) router();
 });
 
 // ── Modal ──
