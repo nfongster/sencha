@@ -89,10 +89,6 @@ func (r *PostgresRepository) DeleteLevel(number int) error {
 	}
 	defer tx.Rollback(r.ctx)
 
-	var phaseNumber int32
-	if err := tx.QueryRow(r.ctx, `SELECT phase_number FROM levels WHERE number = $1`, number).Scan(&phaseNumber); err != nil {
-		return fmt.Errorf("level %d not found", number)
-	}
 	if _, err := tx.Exec(r.ctx, `DELETE FROM sentences WHERE level_number = $1`, number); err != nil {
 		return err
 	}
@@ -102,7 +98,13 @@ func (r *PostgresRepository) DeleteLevel(number int) error {
 	if _, err := tx.Exec(r.ctx, `DELETE FROM levels WHERE number = $1`, number); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(r.ctx, `UPDATE levels SET number = number - 1 WHERE phase_number = $1 AND number > $2`, phaseNumber, number); err != nil {
+	if _, err := tx.Exec(r.ctx, `UPDATE levels SET number = number - 1 WHERE number > $1`, number); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(r.ctx, `UPDATE vocabulary SET level_number = level_number - 1 WHERE level_number > $1`, number); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(r.ctx, `UPDATE sentences SET level_number = level_number - 1 WHERE level_number > $1`, number); err != nil {
 		return err
 	}
 	return tx.Commit(r.ctx)

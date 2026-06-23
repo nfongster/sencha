@@ -12,14 +12,14 @@ CREATE TABLE levels (
 
 CREATE TABLE vocabulary (
     id            SERIAL PRIMARY KEY,
-    level_number  INTEGER NOT NULL REFERENCES levels(number),
+    level_number  INTEGER NOT NULL REFERENCES levels(number) ON UPDATE CASCADE,
     korean        TEXT NOT NULL,
     english       TEXT NOT NULL
 );
 
 CREATE TABLE sentences (
     id            SERIAL PRIMARY KEY,
-    level_number  INTEGER NOT NULL REFERENCES levels(number),
+    level_number  INTEGER NOT NULL REFERENCES levels(number) ON UPDATE CASCADE,
     korean        TEXT NOT NULL,
     english       TEXT NOT NULL,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()

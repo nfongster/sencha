@@ -93,19 +93,34 @@ func (r *memoryRepo) DeletePhase(number int) error {
 func (r *memoryRepo) DeleteLevel(number int) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	l, ok := r.levels[number]
-	if !ok {
+	if _, ok := r.levels[number]; !ok {
 		return fmt.Errorf("level %d not found", number)
 	}
-	phaseNum := l.PhaseNumber
 	delete(r.levels, number)
-	for ln, level := range r.levels {
-		if level.PhaseNumber == phaseNum && ln > number {
-			level.Number = ln - 1
-			delete(r.levels, ln)
-			r.levels[ln-1] = level
+	delete(r.vocabByLevel, number)
+	for ln := number + 1; ; ln++ {
+		l, ok := r.levels[ln]
+		if !ok {
+			break
 		}
+		l.Number = ln - 1
+		delete(r.levels, ln)
+		r.levels[ln-1] = l
 	}
+	for ln := number + 1; ; ln++ {
+		v, ok := r.vocabByLevel[ln]
+		if !ok {
+			break
+		}
+		delete(r.vocabByLevel, ln)
+		r.vocabByLevel[ln-1] = v
+	}
+	// Rebuild cumulative vocab and categories
+	r.vocab = nil
+	for i := 1; i <= len(r.levels)+1; i++ {
+		r.vocab = append(r.vocab, r.vocabByLevel[i]...)
+	}
+	r.rebuildCategories()
 	return nil
 }
 
