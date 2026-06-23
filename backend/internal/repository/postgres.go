@@ -334,7 +334,7 @@ func (r *PostgresRepository) LoadLevelData(levelNumber int) (*LevelData, error) 
 			argIdx += 2
 		}
 
-		query := strings.Join(subQueries, " UNION ALL ")
+		query := "SELECT * FROM (" + strings.Join(subQueries, " UNION ALL ") + ") sub"
 		if len(subQueries) > 1 {
 			query += " ORDER BY RANDOM()"
 		}
