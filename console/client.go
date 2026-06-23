@@ -99,15 +99,13 @@ func (c *Client) RevealCard(sessionID string) (*revealResponse, error) {
 }
 
 type level struct {
-	Number       int    `json:"number"`
-	PhaseNumber  int    `json:"phase_number"`
-	GrammarMD    string `json:"grammar_md"`
-	ExceptionsMD string `json:"exceptions_md"`
+	Number      int    `json:"number"`
+	PhaseNumber int    `json:"phase_number"`
+	GrammarMD   string `json:"grammar_md"`
 }
 
 type ruleUpdateRequest struct {
-	GrammarMD  string `json:"grammar_markdown"`
-	Exceptions string `json:"exceptions_markdown"`
+	GrammarMD string `json:"grammar_markdown"`
 }
 
 func (c *Client) GetLevel(number int) (*level, error) {
@@ -132,10 +130,9 @@ func (c *Client) GetLevel(number int) (*level, error) {
 	return &payload.Level, nil
 }
 
-func (c *Client) UpdateLevel(number int, grammarMD, exceptions string) error {
+func (c *Client) UpdateLevel(number int, grammarMD string) error {
 	body, _ := json.Marshal(ruleUpdateRequest{
-		GrammarMD:  grammarMD,
-		Exceptions: exceptions,
+		GrammarMD: grammarMD,
 	})
 	url := c.baseURL + fmt.Sprintf(routeLevel, number)
 	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(body))

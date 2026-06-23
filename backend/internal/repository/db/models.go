@@ -8,11 +8,11 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+
 type Level struct {
-	Number       int32
-	PhaseNumber  int32
-	GrammarMd    string
-	ExceptionsMd pgtype.Text
+	Number      int32
+	PhaseNumber int32
+	GrammarMd   string
 }
 
 type Phase struct {

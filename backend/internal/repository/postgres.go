@@ -8,7 +8,6 @@ import (
 	"sencha/backend/internal/repository/db"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -90,10 +89,6 @@ func (r *PostgresRepository) DeleteLevel(number int) error {
 	}
 	defer tx.Rollback(r.ctx)
 
-	var phaseNumber int32
-	if err := tx.QueryRow(r.ctx, `SELECT phase_number FROM levels WHERE number = $1`, number).Scan(&phaseNumber); err != nil {
-		return fmt.Errorf("level %d not found", number)
-	}
 	if _, err := tx.Exec(r.ctx, `DELETE FROM sentences WHERE level_number = $1`, number); err != nil {
 		return err
 	}
@@ -103,7 +98,13 @@ func (r *PostgresRepository) DeleteLevel(number int) error {
 	if _, err := tx.Exec(r.ctx, `DELETE FROM levels WHERE number = $1`, number); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(r.ctx, `UPDATE levels SET number = number - 1 WHERE phase_number = $1 AND number > $2`, phaseNumber, number); err != nil {
+	if _, err := tx.Exec(r.ctx, `UPDATE levels SET number = number - 1 WHERE number > $1`, number); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(r.ctx, `UPDATE vocabulary SET level_number = level_number - 1 WHERE level_number > $1`, number); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(r.ctx, `UPDATE sentences SET level_number = level_number - 1 WHERE level_number > $1`, number); err != nil {
 		return err
 	}
 	return tx.Commit(r.ctx)
@@ -137,10 +138,9 @@ func (r *PostgresRepository) LevelsInPhase(phaseNumber int) ([]Level, error) {
 	levels := make([]Level, len(rows))
 	for i, row := range rows {
 		levels[i] = Level{
-			Number:       int(row.Number),
-			PhaseNumber:  int(row.PhaseNumber),
-			GrammarMD:    row.GrammarMd,
-			ExceptionsMD: row.ExceptionsMd,
+			Number:      int(row.Number),
+			PhaseNumber: int(row.PhaseNumber),
+			GrammarMD:   row.GrammarMd,
 		}
 	}
 	return levels, nil
@@ -152,35 +152,24 @@ func (r *PostgresRepository) Level(number int) (*Level, error) {
 		return nil, err
 	}
 	return &Level{
-		Number:       int(row.Number),
-		PhaseNumber:  int(row.PhaseNumber),
-		GrammarMD:    row.GrammarMd,
-		ExceptionsMD: row.ExceptionsMd,
+		Number:      int(row.Number),
+		PhaseNumber: int(row.PhaseNumber),
+		GrammarMD:   row.GrammarMd,
 	}, nil
 }
 
 func (r *PostgresRepository) CreateLevel(l Level) error {
-	var exceptions pgtype.Text
-	if l.ExceptionsMD != "" {
-		exceptions = pgtype.Text{String: l.ExceptionsMD, Valid: true}
-	}
 	return r.queries.CreateLevel(r.ctx, db.CreateLevelParams{
-		Number:       int32(l.Number),
-		PhaseNumber:  int32(l.PhaseNumber),
-		GrammarMd:    l.GrammarMD,
-		ExceptionsMd: exceptions,
+		Number:      int32(l.Number),
+		PhaseNumber: int32(l.PhaseNumber),
+		GrammarMd:   l.GrammarMD,
 	})
 }
 
-func (r *PostgresRepository) UpdateLevel(number int, grammarMD, exceptionsMD string) error {
-	var exceptions pgtype.Text
-	if exceptionsMD != "" {
-		exceptions = pgtype.Text{String: exceptionsMD, Valid: true}
-	}
+func (r *PostgresRepository) UpdateLevel(number int, grammarMD string) error {
 	return r.queries.UpdateLevel(r.ctx, db.UpdateLevelParams{
-		Number:       int32(number),
-		GrammarMd:    grammarMD,
-		ExceptionsMd: exceptions,
+		Number:    int32(number),
+		GrammarMd: grammarMD,
 	})
 }
 
@@ -208,10 +197,9 @@ func (r *PostgresRepository) LevelsUpTo(number int) ([]Level, error) {
 	levels := make([]Level, len(rows))
 	for i, row := range rows {
 		levels[i] = Level{
-			Number:       int(row.Number),
-			PhaseNumber:  int(row.PhaseNumber),
-			GrammarMD:    row.GrammarMd,
-			ExceptionsMD: row.ExceptionsMd,
+			Number:      int(row.Number),
+			PhaseNumber: int(row.PhaseNumber),
+			GrammarMD:   row.GrammarMd,
 		}
 	}
 	return levels, nil
@@ -348,7 +336,7 @@ func (r *PostgresRepository) LoadLevelData(levelNumber int) (*LevelData, error) 
 			argIdx += 2
 		}
 
-		query := strings.Join(subQueries, " UNION ALL ")
+		query := "SELECT * FROM (" + strings.Join(subQueries, " UNION ALL ") + ") sub"
 		if len(subQueries) > 1 {
 			query += " ORDER BY RANDOM()"
 		}
@@ -378,8 +366,7 @@ func (r *PostgresRepository) LoadLevelData(levelNumber int) (*LevelData, error) 
 	}
 
 	return &LevelData{
-		GrammarMD:    l.GrammarMD,
-		Vocab:        vocab,
-		ExceptionsMD: l.ExceptionsMD,
+		GrammarMD: l.GrammarMD,
+		Vocab:     vocab,
 	}, nil
 }

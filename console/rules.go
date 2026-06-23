@@ -9,7 +9,7 @@ import (
 )
 
 func runRules(scanner *bufio.Scanner, client *Client) {
-	fmt.Println("Rules subcommands: get <level_number>, set <level_number> <grammar.md> [exceptions.md]")
+	fmt.Println("Rules subcommands: get <level_number>, set <level_number> <grammar.md>")
 	fmt.Print("> ")
 	if !scanner.Scan() {
 		return
@@ -17,7 +17,7 @@ func runRules(scanner *bufio.Scanner, client *Client) {
 	input := strings.TrimSpace(scanner.Text())
 	parts := strings.Fields(input)
 	if len(parts) < 2 {
-		fmt.Println("Usage: get <level_number> | set <level_number> <grammar.md> [exceptions.md]")
+		fmt.Println("Usage: get <level_number> | set <level_number> <grammar.md>")
 		return
 	}
 
@@ -35,14 +35,10 @@ func runRules(scanner *bufio.Scanner, client *Client) {
 		rulesGet(client, number)
 	case "set":
 		if len(parts) < 3 {
-			fmt.Println("Usage: set <level_number> <grammar.md> [exceptions.md]")
+			fmt.Println("Usage: set <level_number> <grammar.md>")
 			return
 		}
-		exceptionsPath := ""
-		if len(parts) > 3 {
-			exceptionsPath = parts[3]
-		}
-		rulesSet(client, number, parts[2], exceptionsPath)
+		rulesSet(client, number, parts[2])
 	default:
 		fmt.Printf("Unknown rules subcommand: %s\n", cmd)
 	}
@@ -60,16 +56,9 @@ func rulesGet(client *Client, number int) {
 	fmt.Println("Grammar:")
 	fmt.Println(l.GrammarMD)
 	fmt.Println()
-	fmt.Println("Exceptions:")
-	if l.ExceptionsMD == "" {
-		fmt.Println("(none)")
-	} else {
-		fmt.Println(l.ExceptionsMD)
-	}
-	fmt.Println()
 }
 
-func rulesSet(client *Client, number int, grammarPath, exceptionsPath string) {
+func rulesSet(client *Client, number int, grammarPath string) {
 	grammarData, err := os.ReadFile(grammarPath)
 	if err != nil {
 		fmt.Printf("Error reading grammar file %q: %v\n", grammarPath, err)
@@ -77,24 +66,11 @@ func rulesSet(client *Client, number int, grammarPath, exceptionsPath string) {
 	}
 	grammarMD := string(grammarData)
 
-	var exceptionsMD string
-	if exceptionsPath != "" {
-		data, err := os.ReadFile(exceptionsPath)
-		if err != nil {
-			fmt.Printf("Error reading exceptions file %q: %v\n", exceptionsPath, err)
-			return
-		}
-		exceptionsMD = string(data)
-	}
-
-	if err := client.UpdateLevel(number, grammarMD, exceptionsMD); err != nil {
+	if err := client.UpdateLevel(number, grammarMD); err != nil {
 		fmt.Printf("Error updating level %d: %v\n", number, err)
 		return
 	}
 
 	fmt.Printf("Grammar loaded from %s (%d bytes)\n", grammarPath, len(grammarData))
-	if exceptionsPath != "" {
-		fmt.Printf("Exceptions loaded from %s (%d bytes)\n", exceptionsPath, len(exceptionsMD))
-	}
 	fmt.Printf("Level %d rules updated successfully.\n", number)
 }

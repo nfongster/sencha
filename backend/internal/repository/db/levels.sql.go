@@ -7,43 +7,34 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createLevel = `-- name: CreateLevel :exec
-INSERT INTO levels (number, phase_number, grammar_md, exceptions_md)
-VALUES ($1, $2, $3, $4)
+INSERT INTO levels (number, phase_number, grammar_md)
+VALUES ($1, $2, $3)
 `
 
 type CreateLevelParams struct {
-	Number       int32
-	PhaseNumber  int32
-	GrammarMd    string
-	ExceptionsMd pgtype.Text
+	Number      int32
+	PhaseNumber int32
+	GrammarMd   string
 }
 
 func (q *Queries) CreateLevel(ctx context.Context, arg CreateLevelParams) error {
-	_, err := q.db.Exec(ctx, createLevel,
-		arg.Number,
-		arg.PhaseNumber,
-		arg.GrammarMd,
-		arg.ExceptionsMd,
-	)
+	_, err := q.db.Exec(ctx, createLevel, arg.Number, arg.PhaseNumber, arg.GrammarMd)
 	return err
 }
 
 const getLevel = `-- name: GetLevel :one
-SELECT number, phase_number, grammar_md, COALESCE(exceptions_md, '') AS exceptions_md
+SELECT number, phase_number, grammar_md
 FROM levels
 WHERE number = $1
 `
 
 type GetLevelRow struct {
-	Number       int32
-	PhaseNumber  int32
-	GrammarMd    string
-	ExceptionsMd string
+	Number      int32
+	PhaseNumber int32
+	GrammarMd   string
 }
 
 func (q *Queries) GetLevel(ctx context.Context, number int32) (GetLevelRow, error) {
@@ -53,23 +44,21 @@ func (q *Queries) GetLevel(ctx context.Context, number int32) (GetLevelRow, erro
 		&i.Number,
 		&i.PhaseNumber,
 		&i.GrammarMd,
-		&i.ExceptionsMd,
 	)
 	return i, err
 }
 
 const levelsInPhase = `-- name: LevelsInPhase :many
-SELECT number, phase_number, grammar_md, COALESCE(exceptions_md, '') AS exceptions_md
+SELECT number, phase_number, grammar_md
 FROM levels
 WHERE phase_number = $1
 ORDER BY number
 `
 
 type LevelsInPhaseRow struct {
-	Number       int32
-	PhaseNumber  int32
-	GrammarMd    string
-	ExceptionsMd string
+	Number      int32
+	PhaseNumber int32
+	GrammarMd   string
 }
 
 func (q *Queries) LevelsInPhase(ctx context.Context, phaseNumber int32) ([]LevelsInPhaseRow, error) {
@@ -85,7 +74,6 @@ func (q *Queries) LevelsInPhase(ctx context.Context, phaseNumber int32) ([]Level
 			&i.Number,
 			&i.PhaseNumber,
 			&i.GrammarMd,
-			&i.ExceptionsMd,
 		); err != nil {
 			return nil, err
 		}
@@ -98,17 +86,16 @@ func (q *Queries) LevelsInPhase(ctx context.Context, phaseNumber int32) ([]Level
 }
 
 const levelsUpTo = `-- name: LevelsUpTo :many
-SELECT number, phase_number, grammar_md, COALESCE(exceptions_md, '') AS exceptions_md
+SELECT number, phase_number, grammar_md
 FROM levels
 WHERE number <= $1
 ORDER BY number
 `
 
 type LevelsUpToRow struct {
-	Number       int32
-	PhaseNumber  int32
-	GrammarMd    string
-	ExceptionsMd string
+	Number      int32
+	PhaseNumber int32
+	GrammarMd   string
 }
 
 func (q *Queries) LevelsUpTo(ctx context.Context, number int32) ([]LevelsUpToRow, error) {
@@ -124,7 +111,6 @@ func (q *Queries) LevelsUpTo(ctx context.Context, number int32) ([]LevelsUpToRow
 			&i.Number,
 			&i.PhaseNumber,
 			&i.GrammarMd,
-			&i.ExceptionsMd,
 		); err != nil {
 			return nil, err
 		}
@@ -148,16 +134,15 @@ func (q *Queries) MaxLevelNumber(ctx context.Context) (interface{}, error) {
 }
 
 const updateLevel = `-- name: UpdateLevel :exec
-UPDATE levels SET grammar_md = $2, exceptions_md = $3 WHERE number = $1
+UPDATE levels SET grammar_md = $2 WHERE number = $1
 `
 
 type UpdateLevelParams struct {
-	Number       int32
-	GrammarMd    string
-	ExceptionsMd pgtype.Text
+	Number    int32
+	GrammarMd string
 }
 
 func (q *Queries) UpdateLevel(ctx context.Context, arg UpdateLevelParams) error {
-	_, err := q.db.Exec(ctx, updateLevel, arg.Number, arg.GrammarMd, arg.ExceptionsMd)
+	_, err := q.db.Exec(ctx, updateLevel, arg.Number, arg.GrammarMd)
 	return err
 }

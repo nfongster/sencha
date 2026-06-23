@@ -101,7 +101,7 @@ func TestBuildGrammarCheckPrompt_IncludesPairs(t *testing.T) {
 		{Korean: "그녀는 의사입니다", English: "She is a doctor"},
 	}
 
-	prompt, err := buildGrammarCheckPrompt(pairs, "")
+	prompt, err := buildGrammarCheckPrompt(pairs)
 	assert.NoError(t, err)
 	assert.Contains(t, prompt, "저는 학생입니다")
 	assert.Contains(t, prompt, "I am a student")
@@ -110,18 +110,9 @@ func TestBuildGrammarCheckPrompt_IncludesPairs(t *testing.T) {
 }
 
 func TestBuildGrammarCheckPrompt_EmptyPairs(t *testing.T) {
-	prompt, err := buildGrammarCheckPrompt(nil, "")
+	prompt, err := buildGrammarCheckPrompt(nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, prompt)
 }
 
-func TestBuildGrammarCheckPrompt_IncludesExceptions(t *testing.T) {
-	pairs := []session.SentencePair{
-		{Korean: "저는 학생입니다", English: "I am a student"},
-	}
 
-	prompt, err := buildGrammarCheckPrompt(pairs, "- Watch out for X\n- Watch out for Y")
-	assert.NoError(t, err)
-	assert.Contains(t, prompt, "Watch out for X")
-	assert.Contains(t, prompt, "Watch out for Y")
-}

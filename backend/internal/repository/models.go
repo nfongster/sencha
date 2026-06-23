@@ -6,10 +6,9 @@ type Phase struct {
 }
 
 type Level struct {
-	Number       int    `json:"number"`
-	PhaseNumber  int    `json:"phase_number"`
-	GrammarMD    string `json:"grammar_md"`
-	ExceptionsMD string `json:"exceptions_md"`
+	Number      int    `json:"number"`
+	PhaseNumber int    `json:"phase_number"`
+	GrammarMD   string `json:"grammar_md"`
 }
 
 type VocabEntry struct {
@@ -25,7 +24,6 @@ type Sentence struct {
 }
 
 type LevelData struct {
-	GrammarMD    string
-	Vocab        []VocabEntry
-	ExceptionsMD string
+	GrammarMD string
+	Vocab     []VocabEntry
 }

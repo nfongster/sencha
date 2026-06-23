@@ -4,6 +4,19 @@
     "README.md",
     "ai/AGENTS.md",
     "ai/backend-architecture.md",
-    "ai/frontend-architecture.md"
-  ]
+    "ai/frontend-architecture.md",
+    ".opencode/instruct/build.md"
+  ],
+  "agent": {
+    "tester": {
+      "description": "Runs backend tests and reports failures. Use only for Build-mode test verification.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "read": "allow"
+      },
+      "file": ".opencode/agents/tester.md"
+    }
+  }
 }
