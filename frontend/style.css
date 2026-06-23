@@ -535,6 +535,26 @@ body {
 }
 .grammar-content em { color: #9ca3af; }
 
+/* ── Prompt editor ── */
+.prompt-editor {
+  width: 100%;
+  min-height: 400px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #374151;
+  background: #1f2937;
+  color: #fff;
+  outline: none;
+  resize: vertical;
+}
+
+.prompt-editor:focus {
+  border-color: #6366f1;
+}
+
 /* ── Persistent banner (session expired) ── */
 .persistent-banner {
   background: #78350f;
