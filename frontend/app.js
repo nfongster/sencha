@@ -600,7 +600,6 @@ async function gradeCard(grade) {
     App.cardStates[App.currentIndex] = color;
 
     if (data.session_complete) {
-      clearSession();
       location.hash = '#summary';
     } else {
       App.currentIndex++;
