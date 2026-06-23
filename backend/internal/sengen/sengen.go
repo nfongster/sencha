@@ -130,6 +130,10 @@ func Generate(count int, data repository.LevelData) ([]session.SentencePair, err
 		return nil, fmt.Errorf("parsing LLM response: %w", err)
 	}
 
+	if len(pairs) > count {
+		pairs = pairs[:count]
+	}
+
 	if len(pairs) == 0 {
 		return nil, fmt.Errorf("LLM returned no sentences")
 	}
